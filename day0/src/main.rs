@@ -15,7 +15,7 @@ fn main() -> std::io::Result<()> {
     // We unwrap the Result immediately, without matching it.
     let path = std::env::current_dir()?;
     // println is in the global namespace, apparently.
-    // No idea what the ! does here.
+    // The ! means that it is a Rust macro. We can define our own... sometime.
     // Nice that they have formatting using {} instead of specifiers.
     println!("The current directory is {}", path.display());
 

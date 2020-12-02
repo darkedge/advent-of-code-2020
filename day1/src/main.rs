@@ -37,47 +37,51 @@ Of course, your expense report is much larger. Find the two entries that sum to 
 get if you multiply them together?
 */
 
-// Okay, this use keyword makes sense, like importing a namespace.
+/**
+ * Ok, so: initial ideas
+ * 1. Brute force - sum every x with y
+ * 2. Second list with 2020 - x, check for duplicates
+ * 3. a. Sort the list: start with two pointers at the low end of the list
+ *    b. increment first pointer and check if sum is 2020
+ *    c. keep incrementing first pointer until overshoot
+ *    d. increment second pointer once, start decrementing first pointer until undershoot
+ *    e. keep going until we find 2020
+ *
+ * I like 2 best, for now.
+ * Note: We know what the data looks like! We can and should that that to our advantage.
+ * Of course, we could parse the data offline and not even touch code, but that's no fun.
+ * 
+ * From a quick glance it looks like most numbers are over 1010. This reduces the amount of entries
+ * that we need to take a look at.
+ * But bah, computers are so fast, even brute forcing this list should literally be done
+ * in a millisecond.
+ */
 use std::fs::File;
-// Uhhhh.
-use std::io::{self, BufRead};
-use std::path::Path;
-fn main() {
-    // Ok seems like a special thing. Does it unwrap a result?
-    // lines is the variable that is being declared.
-    // read_lines (from below) returns...
-    // Ooh. It's shorthand.
-    //if let Ok(lines) = read_lines("../day1/input")
-    // is equivalent to:
-    let result = read_lines("../day1/input");
-    // result is of type Result<...>.
-    // This Result can be matched to Ok,
-    // which can then be unwrapped.
-    match result {
-        Ok(lines) => {
-            // Start of the body (could be placed after the "if let")
 
-            // Consumes the iterator, returns an (Optional) String
-            for line in lines {
-                // Another if let.
-                // So basically: If line can be matched to Ok,
-                // unwrap to ip.
-                if let Ok(ip) = line {
-                    println!("{}", ip);
+// use std::io::{self, BufRead};
+use std::io;
+use std::io::BufRead;
+
+use std::path::Path;
+
+fn main() {
+    if let Ok(lines) = read_lines("../day1/input") {
+        // Lines is an iterator, we don't know how many lines there are
+        // because we parse as we go.
+        for line in lines {
+            if let Ok(entry) = line {
+                if let Ok(parsed_entry) = entry.parse::<i32>()
+                {
+                    println!("{}", parsed_entry);
                 }
             }
         }
-        _ => {}
     }
 }
-// The output is wrapped in a Result to allow matching on errors
-// Returns an Iterator to the Reader of the lines of the file.
-// So read_lines is polymorphic, I guess. We're passing a string.
-// The where keyword here looks like a type check.
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path>, // Trait bound: P must be convertible to &Path
 {
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
