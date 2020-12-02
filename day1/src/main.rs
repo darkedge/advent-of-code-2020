@@ -65,8 +65,7 @@ use std::vec::Vec;
 
 use std::path::Path;
 
-fn main() {
-    println!("=== Advent of Code Day 1 ===");
+fn part_one() {
     match read_lines("input") {
         Ok(lines) => {
             // Lines is an iterator, we don't know how many lines there are
@@ -109,6 +108,87 @@ fn main() {
             println!("Error: Could not read lines!")
         }
     }
+}
+
+/**
+ * --- Part Two ---
+ *
+ * The Elves in accounting are thankful for your help; one of them even offers you a starfish coin
+ * they had left over from a past vacation. They offer you a second one if you can find three
+ * numbers in your expense report that meet the same criteria.
+ *
+ * Using the above example again, the three entries that sum to 2020 are 979, 366, and 675.
+ * Multiplying them together produces the answer, 241861950.
+ *
+ * In your expense report, what is the product of the three entries that sum to 2020?
+ */
+
+/**
+ * Hm. Time to be a little smarter. Sort the list. Get the two lowest values.
+ * Remove all values from the list smaller than 2020 - x - y. Brute force the rest.
+ */
+
+fn part_two() {
+    match read_lines("input") {
+        Ok(lines) => {
+            let mut list = Vec::new();
+
+            for line in lines {
+                if let Ok(entry) = line {
+                    if let Ok(parsed_entry) = entry.parse::<i32>() {
+                        list.push(parsed_entry);
+                    }
+                }
+            }
+
+            list.sort_unstable();
+
+            let cutoff_value = 2020 - list[0] - list[1];
+            println!("Cutoff value: {}", cutoff_value);
+
+            while list.last().unwrap() > &cutoff_value {
+                list.pop();
+            }
+
+            println!("Filtered list:");
+            for i in &list {
+                println!("{}", i);
+            }
+
+            // Simple triple loop time!
+            let len = &list.len();
+            let mut found = false;
+            for x in 0..*len {
+                for y in x..*len {
+                    for z in y..*len {
+                        let i0 = list[x];
+                        let i1 = list[y];
+                        let i2 = list[z];
+                        if i0 + i1 + i2 == 2020 {
+                            println!("{} x {} x {} = {}", i0, i1, i2, i0 * i1 * i2);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if found {
+                        break;
+                    }
+                }
+                if found {
+                    break;
+                }
+            }
+        }
+        _ => {
+            println!("Error: Could not read lines!")
+        }
+    }
+}
+
+fn main() {
+    println!("=== Advent of Code Day 1 ===");
+    part_one();
+    part_two();
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
