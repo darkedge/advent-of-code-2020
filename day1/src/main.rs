@@ -61,6 +61,7 @@ use std::fs::File;
 // use std::io::{self, BufRead};
 use std::io;
 use std::io::BufRead;
+use std::vec::Vec;
 
 use std::path::Path;
 
@@ -70,10 +71,18 @@ fn main() {
         Ok(lines) => {
             // Lines is an iterator, we don't know how many lines there are
             // because we parse as we go.
+
+            // Create two lists
+            // Oh look, mutable variables have the mut keyword after let.
+            let mut left = Vec::new();
+            let mut right = Vec::new();
+
             for line in lines {
                 if let Ok(entry) = line {
                     if let Ok(parsed_entry) = entry.parse::<i32>() {
-                        println!("{}", parsed_entry);
+                        left.push(parsed_entry);
+                        right.push(2020 - parsed_entry);
+                        println!("{} {}", left.last().unwrap(), right.last().unwrap());
                     }
                 }
             }
