@@ -50,7 +50,7 @@ get if you multiply them together?
  * I like 2 best, for now.
  * Note: We know what the data looks like! We can and should that that to our advantage.
  * Of course, we could parse the data offline and not even touch code, but that's no fun.
- * 
+ *
  * From a quick glance it looks like most numbers are over 1010. This reduces the amount of entries
  * that we need to take a look at.
  * But bah, computers are so fast, even brute forcing this list should literally be done
@@ -65,16 +65,21 @@ use std::io::BufRead;
 use std::path::Path;
 
 fn main() {
-    if let Ok(lines) = read_lines("../day1/input") {
-        // Lines is an iterator, we don't know how many lines there are
-        // because we parse as we go.
-        for line in lines {
-            if let Ok(entry) = line {
-                if let Ok(parsed_entry) = entry.parse::<i32>()
-                {
-                    println!("{}", parsed_entry);
+    println!("=== Advent of Code Day 1 ===");
+    match read_lines("input") {
+        Ok(lines) => {
+            // Lines is an iterator, we don't know how many lines there are
+            // because we parse as we go.
+            for line in lines {
+                if let Ok(entry) = line {
+                    if let Ok(parsed_entry) = entry.parse::<i32>() {
+                        println!("{}", parsed_entry);
+                    }
                 }
             }
+        }
+        _ => {
+            println!("Error: Could not read lines!")
         }
     }
 }
