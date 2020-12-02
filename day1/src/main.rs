@@ -159,8 +159,8 @@ fn part_two() {
             let len = &list.len();
             let mut found = false;
             for x in 0..*len {
-                for y in x..*len {
-                    for z in y..*len {
+                for y in (x + 1)..*len {
+                    for z in (y + 1)..*len {
                         let i0 = list[x];
                         let i1 = list[y];
                         let i2 = list[z];
