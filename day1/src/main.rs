@@ -86,6 +86,24 @@ fn main() {
                     }
                 }
             }
+
+            // Now that we have two lists, check if one entry is in both
+            let mut found = false;
+
+            // The ampersands are necessary here. First encounter with borrowing.
+            for x in &left {
+                for y in &right {
+                    if x == y {
+                        let z = 2020 - y;
+                        println!("{} x {} = {}", x, z, x * z);
+                        found = true;
+                        break;
+                    }
+                }
+                if found {
+                    break;
+                }
+            }
         }
         _ => {
             println!("Error: Could not read lines!")
