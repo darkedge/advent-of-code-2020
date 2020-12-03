@@ -87,15 +87,17 @@ fn part_one() {
 
             let right = 3;
             let down = 1;
-            let advance = right + down * stride;
-            let mut cursor = 0;
+            let mut x = 0;
+            let mut y = 0;
             let mut num_trees = 0;
 
-            while cursor < len {
-                if buffer[cursor] == '#' as u8 {
+            while (y * stride + x) < len {
+                if buffer[y * stride + x] == '#' as u8 {
                     num_trees += 1;
                 }
-                cursor += advance;
+                x += right;
+                x %= stride;
+                y += down;
             }
 
             println!("Number of trees: {}", num_trees);
