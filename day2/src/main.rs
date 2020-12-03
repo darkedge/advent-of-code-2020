@@ -31,7 +31,7 @@ How many passwords are valid according to their policies?
 */
 mod parser;
 
-fn main() {
+fn part_one() {
     match parser::read_lines("input") {
         Ok(lines) => {
             let mut num_ok: i32 = 0;
@@ -54,10 +54,10 @@ fn main() {
                     }
 
                     if count >= min && count <= max {
+                        // println! {"{} OK", entry};
                         num_ok += 1;
-                        println! {"{} OK", entry};
                     } else {
-                        println! {"{} FAIL", entry};
+                        // println! {"{} FAIL", entry};
                     }
                 }
             } // end password list
@@ -68,4 +68,47 @@ fn main() {
             println!("Error: Could not read lines!")
         }
     }
+}
+
+fn part_two() {
+    match parser::read_lines("input") {
+        Ok(lines) => {
+            let mut num_ok: i32 = 0;
+            for line in lines {
+                if let Ok(entry) = line {
+                    // println! {"Parsing password: {}", entry};
+                    // Parse line
+                    let mut tokens = entry.split(|c| c == '-' || c == ':' || c == ' ');
+
+                    // These are 1-based!
+                    let pos0 = tokens.next().unwrap().parse::<i32>().unwrap() - 1;
+                    let pos1 = tokens.next().unwrap().parse::<i32>().unwrap() - 1;
+                    let c = tokens.next().unwrap().chars().next().unwrap() as u8;
+                    tokens.next();
+                    let password = tokens.next().unwrap();
+
+                    // Index the string as ASCII bytes
+                    let chars = password.as_bytes();
+
+                    let has_pos0 = chars[pos0 as usize] == c;
+                    let has_pos1 = chars[pos1 as usize] == c;
+                    let valid = has_pos0 ^ has_pos1;
+                    if valid {
+                        num_ok += 1;
+                    }
+                }
+            } // end password list
+
+            println! {"Number of passwords OK: {}", num_ok};
+        }
+        _ => {
+            println!("Error: Could not read lines!")
+        }
+    }
+}
+
+fn main() {
+    println!("=== Advent of Code Day 1 ===");
+    part_one();
+    part_two();
 }
