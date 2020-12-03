@@ -5,6 +5,7 @@ fn main() {
 }
 */
 
+/*
 // Print working directory
 // We return a Result of ().
 // () looks like a built-in void type.
@@ -24,6 +25,7 @@ fn main() -> std::io::Result<()> {
     // What if we put a void statement after this?
     Ok(())
 }
+*/
 
 /*
 // Okay, this use keyword makes sense, like importing a namespace.
@@ -72,3 +74,37 @@ where P: AsRef<Path>, {
 */
 
 // Note: Run "cargo run" from the Cargo.toml directory.
+
+/*
+// template
+
+fn part_one() {
+    match parser::read_lines("input") {
+        Ok(lines) => {
+            for line in lines {
+                if let Ok(entry) = line {
+                    
+                }
+            } 
+        }
+        _ => {
+            println!("Error: Could not read lines!")
+        }
+    }
+}
+
+fn part_two() {
+    match parser::read_lines("input") {
+        Ok(lines) => {
+            for line in lines {
+                if let Ok(entry) = line {
+                    
+                }
+            } 
+        }
+        _ => {
+            println!("Error: Could not read lines!")
+        }
+    }
+}
+*/
