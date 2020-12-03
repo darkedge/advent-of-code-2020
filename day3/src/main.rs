@@ -72,6 +72,24 @@ mod parser;
 use std::fs::File;
 use std::io::prelude::*;
 
+fn count_trees(buffer: &Vec<u8>, stride: usize, right: usize, down: usize) -> i32{
+    let len = buffer.len();
+    let mut x = 0;
+    let mut y = 0;
+    let mut num_trees = 0;
+
+    while (y * stride + x) < len {
+        if buffer[y * stride + x] == '#' as u8 {
+            num_trees += 1;
+        }
+        x += right;
+        x %= stride;
+        y += down;
+    }
+
+    return num_trees;
+}
+
 fn part_one() {
     if let Ok(mut file) = File::open("input") {
         let mut buffer = Vec::new();
@@ -83,24 +101,11 @@ fn part_one() {
 
             // Remove newlines
             buffer.retain(|&c| c != '\n' as u8);
-            let len = buffer.len();
 
             let right = 3;
             let down = 1;
-            let mut x = 0;
-            let mut y = 0;
-            let mut num_trees = 0;
 
-            while (y * stride + x) < len {
-                if buffer[y * stride + x] == '#' as u8 {
-                    num_trees += 1;
-                }
-                x += right;
-                x %= stride;
-                y += down;
-            }
-
-            println!("Number of trees: {}", num_trees);
+            println!("Number of trees: {}", count_trees(&buffer, stride, right, down));
         }
     }
 }
