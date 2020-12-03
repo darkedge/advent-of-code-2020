@@ -95,8 +95,6 @@ fn part_one() {
             // Get the width of the map
             let stride = buffer.iter().position(|&c| c == '\n' as u8).unwrap();
 
-            println!("Stride: {}", stride);
-
             // Remove newlines
             buffer.retain(|&c| c != '\n' as u8);
 
@@ -140,14 +138,17 @@ fn part_two() {
             // Get the width of the map
             let stride = buffer.iter().position(|&c| c == '\n' as u8).unwrap();
 
-            let mut product = 1;
+            // Remove newlines
+            buffer.retain(|&c| c != '\n' as u8);
+
+            let mut product : i64 = 1;
             for (right, down) in [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)].iter() {
                 let count = count_trees(&buffer, stride, *right, *down);
                 println!(
                     "Number of trees - Right {}, down {}: {}",
                     right, down, count
                 );
-                product *= count;
+                product *= count as i64;
             }
 
             println!("Multiplied counts: {}", product);
