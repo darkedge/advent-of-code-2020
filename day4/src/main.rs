@@ -62,8 +62,10 @@ use std::io::prelude::*;
 
 fn part_one() {
     if let Ok(mut file) = File::open("input") {
-        let mut buffer = Vec::new();
-        if let Ok(_) = file.read_to_end(&mut buffer) {}
+        let mut contents = String::new();
+        let _ = file.read_to_string(&mut contents);
+        let passports: Vec<&str> = contents.split("\n\n").collect();
+        println!("Number of passports: {}", passports.len());
     }
 }
 
