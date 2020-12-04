@@ -60,12 +60,102 @@ In your batch file, how many passports are valid?
 use std::fs::File;
 use std::io::prelude::*;
 
+struct Passport<'a> {
+    birth_year: Option<&'a str>,      // byr
+    issue_year: Option<&'a str>,      // iyr
+    expiration_year: Option<&'a str>, // eyr
+    height: Option<&'a str>,          // hgt
+    hair_color: Option<&'a str>,      // hcl
+    eye_color: Option<&'a str>,       // ecl
+    passport_id: Option<&'a str>,     // pid
+    country_id: Option<&'a str>,      // cid
+}
+
+fn parse_passports<'a>(list: &'a Vec<&'a str>) -> Vec<Passport> {
+    let mut passports = Vec::new();
+
+    for entry in list {
+        let mut birth_year: Option<&str> = None;
+        let mut issue_year: Option<&str> = None;
+        let mut expiration_year: Option<&str> = None;
+        let mut height: Option<&str> = None;
+        let mut hair_color: Option<&str> = None;
+        let mut eye_color: Option<&str> = None;
+        let mut passport_id: Option<&str> = None;
+        let mut country_id: Option<&str> = None;
+
+        /*
+         * pid:8729818647 hcl:z
+         * ecl:#ae70eb cid:168 hgt:161cm iyr:2030
+         * eyr:2020 byr:2022
+         * (possible newline)
+         */
+        let fields = entry.split(|c| c == ' ' || c == '\n');
+        for field in fields {
+            if field.is_empty() {
+                continue;
+            }
+            // pid:8729818647
+            //println!("parsing field: {}", field);
+            let mut tokens = field.split(':');
+            let key = tokens.next();
+            match key {
+                Some("byr") => birth_year = tokens.next(),
+                Some("iyr") => issue_year = tokens.next(),
+                Some("eyr") => expiration_year = tokens.next(),
+                Some("hgt") => height = tokens.next(),
+                Some("hcl") => hair_color = tokens.next(),
+                Some("ecl") => eye_color = tokens.next(),
+                Some("pid") => passport_id = tokens.next(),
+                Some("cid") => country_id = tokens.next(),
+                Some(x) => println!("Found invalid token: {}", x),
+                _ => println!("Parse error!"),
+            }
+        }
+
+        let passport = Passport {
+            birth_year,
+            issue_year,
+            expiration_year,
+            height,
+            hair_color,
+            eye_color,
+            passport_id,
+            country_id,
+        };
+
+        passports.push(passport);
+    }
+
+    return passports;
+}
+
 fn part_one() {
     if let Ok(mut file) = File::open("input") {
+        // Read the whole file into a string.
         let mut contents = String::new();
         let _ = file.read_to_string(&mut contents);
+
+        // Passports seem to be delimited by two newlines.
+        // Create a vector of strings for passports.
         let passports: Vec<&str> = contents.split("\n\n").collect();
         println!("Number of passports: {}", passports.len());
+
+        // Now we can split each password into fields.
+        let mut parsed = parse_passports(&passports);
+
+        // Valid passports must contain certain values
+        parsed.retain(|x| {
+            x.birth_year.is_some()
+                && x.issue_year.is_some()
+                && x.expiration_year.is_some()
+                && x.height.is_some()
+                && x.hair_color.is_some()
+                && x.eye_color.is_some()
+                && x.passport_id.is_some()
+        });
+
+        println!("Number of valid passports: {}", parsed.len());
     }
 }
 
