@@ -92,9 +92,68 @@ fn part_one() {
     }
 }
 
+/*
+--- Part Two ---
+
+Ding! The "fasten seat belt" signs have turned on. Time to find your seat.
+
+It's a completely full flight, so your seat should be the only missing boarding pass in your list.
+However, there's a catch: some of the seats at the very front and back of the plane don't exist on
+this aircraft, so they'll be missing from your list as well.
+
+Your seat wasn't at the very front or back, though; the seats with IDs +1 and -1 from yours will be
+in your list.
+
+What is the ID of your seat?
+*/
+
+fn part_two() {
+    if let Ok(file) = File::open("input") {
+        // Search space is small enough that we can put
+        // everything in it (1024)
+        let mut all = vec![];
+        for i in 0..1023 {
+            all.push(i as i32);
+        }
+
+        for line in BufReader::new(file).lines() {
+            match line {
+                Ok(s) => {
+                    let mut value = 0;
+                    for c in s.chars() {
+                        value = value << 1;
+                        match c {
+                            'B' | 'R' => value = value + 1,
+                            _ => (),
+                        }
+                    }
+                    all[value as usize] = -1;
+                }
+                _ => (),
+            }
+        }
+
+        // Check which ones are left
+        let mut prev = 0;
+        for val in all {
+            if val != -1 {
+                if val - prev > 1 {
+                    // Translate back
+                    let col = val & 7;
+                    let row = val >> 3;
+                    println!("My seat: Id = {}, Row = {}, Column {}", val, row, col);
+                    break;
+                }
+                prev = val;
+            }
+        }
+    }
+}
+
 fn main() {
     println!("=== Advent of Code Day 4 ===");
     println!("= Part One =");
     part_one();
     println!("= Part Two =");
+    part_two();
 }
