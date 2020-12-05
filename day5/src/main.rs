@@ -54,14 +54,41 @@ Here are some other boarding passes:
 As a sanity check, look through your list of boarding passes. What is the highest seat ID on a
 boarding pass?
 */
-use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
+use std::io::BufReader;
 
-
-fn part_one()
-{
-
+// RRRRRRR.CCC
+// 7 [F->B] to indicate row (0-127)
+// -> F = 0, B = 1
+// 3 [L->R] to indicate column (0-7)
+// -> L = 0, R = 1
+// total number of seats: 128 * 8 = 1024
+// seat id: row << 3 + column (= RRRRRRRCCC)
+fn part_one() {
+    if let Ok(file) = File::open("input") {
+        let mut vec = Vec::<i32>::new();
+        let mut highest_id = 0;
+        for line in BufReader::new(file).lines() {
+            match line {
+                Ok(s) => {
+                    let val = s
+                        .replace("F", "0")
+                        .replace("B", "1")
+                        .replace("L", "0")
+                        .replace("R", "1");
+                    if let Ok(parsed) = val.parse::<i32>() {
+                        if parsed > highest_id {
+                            highest_id = parsed;
+                        }
+                        vec.push(parsed);
+                    }
+                }
+                _ => (),
+            }
+        }
+        println!("Highest seat id: {}", highest_id);
+    }
 }
 
 fn main() {
