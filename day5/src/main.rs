@@ -151,7 +151,7 @@ fn part_two() {
 }
 
 fn main() {
-    println!("=== Advent of Code Day 4 ===");
+    println!("=== Advent of Code Day 5 ===");
     println!("= Part One =");
     part_one();
     println!("= Part Two =");
