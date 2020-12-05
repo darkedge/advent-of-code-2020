@@ -67,22 +67,23 @@ use std::io::BufReader;
 // seat id: row << 3 + column (= RRRRRRRCCC)
 fn part_one() {
     if let Ok(file) = File::open("input") {
-        let mut vec = Vec::<i32>::new();
+        let mut vec = Vec::new();
         let mut highest_id = 0;
         for line in BufReader::new(file).lines() {
             match line {
                 Ok(s) => {
-                    let val = s
-                        .replace("F", "0")
-                        .replace("B", "1")
-                        .replace("L", "0")
-                        .replace("R", "1");
-                    if let Ok(parsed) = val.parse::<i32>() {
-                        if parsed > highest_id {
-                            highest_id = parsed;
+                    let mut value = 0;
+                    for c in s.chars() {
+                        value = value << 1;
+                        match c {
+                            'B' | 'R' => value = value + 1,
+                            _ => (),
                         }
-                        vec.push(parsed);
                     }
+                    if value > highest_id {
+                        highest_id = value;
+                    }
+                    vec.push(value);
                 }
                 _ => (),
             }
