@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -58,20 +59,37 @@ those counts?
 
 */
 
-fn part_one() {
-    if let Ok(file) = File::open("input") {
+// Groups (paragraphs) of people (lines) of answers (characters)
+// Get union set of answers
+fn part_one() -> std::io::Result<usize> {
+    let file = File::open("input")?;
+    let mut sum_counts = 0;
+
+    // Let's see if we can be a little "smart"
+    // with list mappings and such.
+    // Less lines, but more expensive.
+    let mut buf = String::new();
+    let _ = BufReader::new(file).read_to_string(&mut buf)?;
+    for group in buf.split("\n\n") {
+        let mut answers = HashSet::new();
+        for people in group.split("\n") {
+            for answer in people.chars() {
+                answers.insert(answer);
+            }
+        }
+        sum_counts += answers.len();
     }
+
+    Ok(sum_counts)
 }
 
 fn part_two() {
-    if let Ok(file) = File::open("input") {
-    }
+    if let Ok(file) = File::open("input") {}
 }
 
 fn main() {
     println!("=== Advent of Code Day 6 ===");
-    println!("= Part One =");
-    part_one();
+    println!("Part One: {}", part_one().unwrap_or(0));
     println!("= Part Two =");
     part_two();
 }
