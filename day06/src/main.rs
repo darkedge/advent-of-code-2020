@@ -77,19 +77,87 @@ fn part_one() -> std::io::Result<usize> {
                 answers.insert(answer);
             }
         }
+        //println!("Count : {} ", answers.len());
         sum_counts += answers.len();
     }
 
     Ok(sum_counts)
 }
 
-fn part_two() {
-    if let Ok(file) = File::open("input") {}
+/*
+--- Part Two ---
+
+As you finish the last group's customs declaration, you notice that you misread one word in the
+instructions:
+
+You don't need to identify the questions to which anyone answered "yes"; you need to identify the
+questions to which everyone answered "yes"!
+
+Using the same example as above:
+
+abc
+
+a
+b
+c
+
+ab
+ac
+
+a
+a
+a
+a
+
+b
+
+This list represents answers from five groups:
+
+In the first group, everyone (all 1 person) answered "yes" to 3 questions: a, b, and c.
+In the second group, there is no question to which everyone answered "yes".
+In the third group, everyone answered yes to only 1 question, a. Since some people did not answer
+    "yes" to b or c, they don't count.
+In the fourth group, everyone answered yes to only 1 question, a.
+In the fifth group, everyone (all 1 person) answered "yes" to 1 question, b.
+
+In this example, the sum of these counts is 3 + 0 + 1 + 1 + 1 = 6.
+
+For each group, count the number of questions to which everyone answered "yes". What is the sum of
+those counts?
+*/
+
+// Intersection instead of union.
+fn part_two() -> std::io::Result<usize> {
+    let file = File::open("input")?;
+    let mut sum_counts = 0;
+
+    let mut buf = String::new();
+    let _ = BufReader::new(file).read_to_string(&mut buf)?;
+    let mut base = HashSet::with_capacity(26);
+    // Note the = here to do an inclusive range.
+    // Had a bug here earlier where we only used 25 characters.
+    for x in 'a'..='z' {
+        base.insert(x);
+    }
+    //println!("base: {} - {:?}", base.len(), base);
+    for group in buf.split("\n\n") {
+        let mut intersection = base.clone();
+        for people in group.split("\n") {
+            let mut answers = HashSet::new();
+            for answer in people.chars() {
+                answers.insert(answer);
+            }
+            intersection = intersection.intersection(&answers).cloned().collect();
+        }
+        //println!("Intersection: {} - {:?}", intersection.len(), intersection);
+        sum_counts += intersection.len();
+    }
+
+    Ok(sum_counts)
 }
 
 fn main() {
     println!("=== Advent of Code Day 6 ===");
     println!("Part One: {}", part_one().unwrap_or(0));
-    println!("= Part Two =");
-    part_two();
+    println!("Part Two: {}", part_two().unwrap_or(0));
 }
