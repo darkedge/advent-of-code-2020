@@ -49,13 +49,37 @@ How many bag colors can eventually contain at least one shiny gold bag? (The lis
 long; make sure you get all of it.)
 */
 
+enum State {
+    Container,    // Parse up until "contain"
+    ContentsItem, // x <...> <...> bag(s)
+    ContentsEnd,
+}
+
+fn take_word(x: &mut std::str::Chars) -> String {
+    x
+        .take_while(|p| ('a'..='z').contains(p))
+        .collect::<String>()
+}
+
+fn take_bag(x: &mut std::str::Chars) -> String {
+    take_word(x) + " " + &take_word(x) + " " + &take_word(x)
+}
+
+// State machine to parse.
 fn part_one() -> std::io::Result<usize> {
     let file = File::open("input")?;
+    let mut buf = String::new();
+    let _ = BufReader::new(file).read_to_string(&mut buf)?;
+    //let mut state = State::Container;
+    let mut x = buf.chars();
+
+    let a = take_bag(&mut x);
+    println!("{}", a);
+
     let mut result = 0;
 
     Ok(result)
 }
-
 
 fn part_two() -> std::io::Result<usize> {
     let file = File::open("input")?;
