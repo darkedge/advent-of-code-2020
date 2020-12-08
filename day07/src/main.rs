@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
@@ -49,34 +50,52 @@ How many bag colors can eventually contain at least one shiny gold bag? (The lis
 long; make sure you get all of it.)
 */
 
-enum State {
-    Container,    // Parse up until "contain"
-    ContentsItem, // x <...> <...> bag(s)
-    ContentsEnd,
-}
+fn expand(map: &HashMap<String, HashSet<String>>, set: &HashSet<String>) -> HashSet<String> {
+    let mut result = set.clone();
+    for bag in set {
+        if let Some(list) = map.get(bag) {
+            result.extend(expand(map, list));
+        }
+    }
 
-fn take_word(x: &mut std::str::Chars) -> String {
-    x
-        .take_while(|p| ('a'..='z').contains(p))
-        .collect::<String>()
-}
-
-fn take_bag(x: &mut std::str::Chars) -> String {
-    take_word(x) + " " + &take_word(x) + " " + &take_word(x)
+    result
 }
 
 // State machine to parse.
 fn part_one() -> std::io::Result<usize> {
     let file = File::open("input")?;
-    let mut buf = String::new();
-    let _ = BufReader::new(file).read_to_string(&mut buf)?;
-    //let mut state = State::Container;
-    let mut x = buf.chars();
 
-    let a = take_bag(&mut x);
-    println!("{}", a);
+    let mut reverse_search = HashMap::new();
+
+    let g = BufReader::new(file)
+        .lines()
+        .filter(|p| !p.as_ref().unwrap().ends_with("no other bags."));
+    for line in g {
+        if let Ok(bag) = line {
+            let mut iter = bag
+                .split(' ')
+                .map(|p| p.replace(&[',', '.'][..], ""))
+                .filter(|p| p != "bags" && p != "bag" && p != "contain")
+                .peekable();
+
+            let container = iter.next().unwrap() + " " + &iter.next().unwrap();
+            //println!("{:?}", container);
+            while iter.peek().is_some() {
+                let _count = iter.next();
+                let contents = iter.next().unwrap() + " " + &iter.next().unwrap();
+
+                let reverse_set = reverse_search
+                    .entry(contents.clone())
+                    .or_insert(HashSet::new());
+                reverse_set.insert(container.clone());
+            }
+        }
+    }
 
     let mut result = 0;
+    if let Some(a) = reverse_search.get("shiny gold") {
+        result = expand(&reverse_search, a).len();
+    }
 
     Ok(result)
 }
