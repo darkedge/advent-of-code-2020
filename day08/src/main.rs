@@ -69,10 +69,41 @@ Run your copy of the boot code. Immediately before any instruction is executed a
 value is in the accumulator?
 */
 
-fn part_one() -> std::io::Result<usize> {
+fn execute_instruction(instruction: &str, accumulator: &mut i32) -> i32 {
+    let mut tokens = instruction.split(' ').map(|p| p.replace(&['+'][..], ""));
+    let keyword = tokens.next();
+    let keyword_ref = keyword.as_deref();
+    let val = tokens.next().unwrap().parse::<i32>().unwrap();
+
+    match keyword_ref {
+        Some("acc") => {
+            *accumulator += val;
+            1
+        }
+        Some("jmp") => val,
+        _ => 1,
+    }
+}
+
+// Accumulator is a signed integer, starts at zero.
+// jmp instructions are relative
+fn part_one() -> std::io::Result<i32> {
     let file = File::open("input")?;
 
-    Ok(0)
+    // Collect all lines into a vector
+    let mut history = vec![];
+    let a: Vec<_> = BufReader::new(file).lines().collect();
+    let mut instruction_index = 0;
+    let mut accumulator = 0;
+    while !history.contains(&instruction_index) {
+        history.push(instruction_index);
+        if let Ok(instruction) = &a[instruction_index as usize] {
+            //println!("{}: {}", instruction_index + 1, instruction);
+            instruction_index += execute_instruction(instruction, &mut accumulator);
+        }
+    }
+
+    Ok(accumulator)
 }
 
 fn main() {
