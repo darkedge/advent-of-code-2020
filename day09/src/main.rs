@@ -81,7 +81,7 @@ fn sums(queue: &VecDeque<usize>) -> HashSet<usize> {
     sums
 }
 
-fn part_one() -> std::io::Result<i32> {
+fn part_one() -> std::io::Result<usize> {
     let file = File::open("input")?;
 
     let mut queue = VecDeque::new();
@@ -94,7 +94,7 @@ fn part_one() -> std::io::Result<i32> {
     {
         if queue.len() == 25 {
             if !sums(&queue).contains(&i) {
-                return Ok(i as i32);
+                return Ok(i);
             }
 
             queue.pop_front();
@@ -106,8 +106,83 @@ fn part_one() -> std::io::Result<i32> {
     Ok(0)
 }
 
+/*
+--- Part Two ---
+
+The final step in breaking the XMAS encryption relies on the invalid number you just found: you must
+find a contiguous set of at least two numbers in your list which sum to the invalid number from step
+1.
+
+Again consider the above example:
+
+35
+20
+15
+25
+47
+40
+62
+55
+65
+95
+102
+117
+150
+182
+127
+219
+299
+277
+309
+576
+
+In this list, adding up all of the numbers from 15 through 40 produces the invalid number from step
+1, 127. (Of course, the contiguous set of numbers in your actual list might be much longer.)
+
+To find the encryption weakness, add together the smallest and largest number in this contiguous
+range; in this example, these are 15 and 47, producing 62.
+
+What is the encryption weakness in your XMAS-encrypted list of numbers?
+*/
+fn part_two(part_one_result: usize) -> std::io::Result<usize> {
+    let file = File::open("input")?;
+
+    let mut queue = VecDeque::new();
+
+    // Collect all lines into a vector
+    let mut iter = BufReader::new(file)
+        .lines()
+        .map(|line| line.unwrap().parse::<usize>())
+        .map(Result::unwrap);
+
+    queue.push_back(iter.next().unwrap());
+    while !queue.is_empty() {
+        //println!("{:?}", queue);
+        let sum: usize = queue.iter().sum();
+        if sum == 0 {
+            //println!("{:?}", queue);
+        }
+
+        if sum == part_one_result {
+            return Ok(queue.iter().min().unwrap() + queue.iter().max().unwrap());
+        } else if sum < part_one_result {
+            //println!("{} < {}, growing head", sum, part_one_result);
+            match iter.next() {
+                Some(i) => queue.push_back(i),
+                _ => return Ok(0),
+            }
+        } else {
+            //println!("{} > {}, shrinking tail", sum, part_one_result);
+            queue.pop_front();
+        }
+    }
+
+    Ok(0)
+}
+
 fn main() {
     println!("=== Advent of Code Day 8 ===");
-    println!("Part One: {}", part_one().unwrap_or(0));
-    //println!("Part Two: {}", part_two().unwrap_or(0));
+    let part_one_result = part_one().unwrap_or(0);
+    println!("Part One: {}", part_one_result);
+    println!("Part Two: {}", part_two(part_one_result).unwrap_or(0));
 }
