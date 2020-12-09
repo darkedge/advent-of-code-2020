@@ -1,8 +1,9 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+
 /*
 --- Day 9: Encoding Error ---
 
@@ -60,18 +61,49 @@ Here is a larger example which only considers the previous 5 numbers (and has a 
 309
 576
 
-In this example, after the 5-number preamble, almost every number is the sum of two of the previous 5 numbers; the only number that does not follow this rule is 127.
+In this example, after the 5-number preamble, almost every number is the sum of two of the previous
+5 numbers; the only number that does not follow this rule is 127.
 
-The first step of attacking the weakness in the XMAS data is to find the first number in the list (after the preamble) which is not the sum of two of the 25 numbers before it. What is the first number that does not have this property?
+The first step of attacking the weakness in the XMAS data is to find the first number in the list
+(after the preamble) which is not the sum of two of the 25 numbers before it. What is the first
+number that does not have this property?
 */
+fn sums(queue: &VecDeque<usize>) -> HashSet<usize> {
+    let mut sums = HashSet::new();
+    for i in 0..queue.len() {
+        for j in 1..queue.len() {
+            sums.insert(queue[i] + queue[j]);
+        }
+    }
+
+    // println!("{:?}", sums);
+
+    sums
+}
 
 fn part_one() -> std::io::Result<i32> {
     let file = File::open("input")?;
 
-    // Collect all lines into a vector
-    let mut lines: Vec<_> = BufReader::new(file).lines().map(Result::unwrap).collect();
+    let mut queue = VecDeque::new();
 
-    Ok(lines.len() as i32)
+    // Collect all lines into a vector
+    for i in BufReader::new(file)
+        .lines()
+        .map(|line| line.unwrap().parse::<usize>())
+        .map(Result::unwrap)
+    {
+        if queue.len() == 25 {
+            if !sums(&queue).contains(&i) {
+                return Ok(i as i32);
+            }
+
+            queue.pop_front();
+        }
+
+        queue.push_back(i);
+    }
+
+    Ok(0)
 }
 
 fn main() {
