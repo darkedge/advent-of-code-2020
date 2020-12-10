@@ -1,5 +1,4 @@
-use std::collections::HashSet;
-use std::collections::VecDeque;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -124,13 +123,13 @@ fn part_one() -> std::io::Result<usize> {
     list.push(0); // Charging outlet
     list.sort();
     list.push(list.last().unwrap() + 3); // My device
-    println!("Chain: {:?}", list);
+                                         //println!("Chain: {:?}", list);
 
     let a = list.iter().zip(list.iter().skip(1)).map(|x| x.1 - x.0);
     let one = a.clone().filter(|x| x == &1).count();
     let three = a.clone().filter(|x| x == &3).count();
     let result = one * three;
-    println!("{}(1 jolts) * {}(3 jolts) = {}", one, three, result);
+    //println!("{}(1 jolts) * {}(3 jolts) = {}", one, three, result);
 
     Ok(result)
 }
@@ -219,8 +218,56 @@ outlet to your device?
 // 1. y - x >= 3
 // 2. x < y
 // Back to the delta's. We can make a list of all delta's.
+//
 fn part_two() -> std::io::Result<usize> {
-    Ok(0)
+    let mut list = BufReader::new(File::open("input")?)
+        .lines()
+        .map(|line| line.unwrap().parse::<i64>())
+        .map(Result::unwrap)
+        .collect::<Vec<i64>>();
+
+    list.push(0); // Charging outlet
+    list.sort();
+    let device_joltage = list.last().unwrap() + 3;
+    list.push(device_joltage);
+
+    // Four ways to make a jump:
+    // (0 -> 3)
+    // (0 -> 1 -> 3)
+    // (0 -> 2 -> 3)
+    // (0 -> 1 -> 2 -> 3)
+    let mut set = HashMap::<&i64, usize>::new();
+
+    // 0: 1
+    // 1: 1
+    // 2: 1 + 1 if 1 exists
+    // 3: 1
+    for i in &list {
+        set.insert(i, 0);
+        let mut count = 0;
+        for j in 1..=3 {
+            // 0 (1): -3, -2, -1
+            // 1 (1): -2, -1, 0
+            // 2 (2): -1, 0, 1
+            // 3 (4): 0, 1, 2
+            let offset = i - j;
+            if list.contains(&offset) {
+                count += set[&offset];
+            }
+        }
+        if count == 0 {
+            count = 1;
+        }
+        set.insert(i, count);
+    }
+
+    /*
+    for i in &list {
+        println!("{}: {}", i, set[&i]);
+    }
+    */
+
+    Ok(set[&list.last().unwrap()])
 }
 
 fn main() {
