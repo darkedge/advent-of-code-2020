@@ -115,13 +115,28 @@ device. What is the number of 1-jolt differences multiplied by the number of 3-j
 */
 
 fn part_one() -> std::io::Result<usize> {
-    let file = File::open("input")?;
+    let mut list = BufReader::new(File::open("input")?)
+        .lines()
+        .map(|line| line.unwrap().parse::<usize>())
+        .map(Result::unwrap)
+        .collect::<Vec<usize>>();
 
-    Ok(0)
+    list.push(0); // Charging outlet
+    list.sort();
+    list.push(list.last().unwrap() + 3); // My device
+    println!("Chain: {:?}", list);
+
+    let a = list.iter().zip(list.iter().skip(1)).map(|x| x.1 - x.0);
+    let one = a.clone().filter(|x| x == &1).count();
+    let three = a.clone().filter(|x| x == &3).count();
+    let result = one * three;
+    println!("{}(1 jolts) * {}(3 jolts) = {}", one, three, result);
+
+    Ok(result)
 }
 
 fn main() {
     println!("=== Advent of Code Day 10 ===");
-    println!("Part Two: {}", part_one().unwrap_or(0));
+    println!("Part One: {}", part_one().unwrap_or(0));
     //println!("Part Two: {}", part_two().unwrap_or(0));
 }
