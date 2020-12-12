@@ -53,7 +53,7 @@ Figure out where the navigation instructions lead. What is the Manhattan distanc
 
 */
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone)]
 enum Action {
     North,
     South,
@@ -87,15 +87,33 @@ fn direction_to_degrees(direction: Action) -> i32 {
 // East/North = +
 fn forward(direction: Action) -> (i32, i32) {
     match direction {
-        Action::East => (0, 1),
-        Action::North => (1, 0),
-        Action::West => (0, -1),
-        Action::South => (-1, 0),
+        Action::East => (1, 0),
+        Action::North => (0, 1),
+        Action::West => (-1, 0),
+        Action::South => (0, -1),
         _ => unreachable!(),
     }
 }
 
-fn parse_input() -> std::io::Result<Vec<(Action, i32)>> {
+#[derive(Debug, Copy, Clone)]
+struct Instruction {
+    action: Action,
+    value: i32,
+}
+
+#[derive(Debug, Copy, Clone)]
+struct Ship {
+    x: i32,
+    y: i32,
+}
+
+#[derive(Debug, Copy, Clone)]
+struct Waypoint {
+    x: i32,
+    y: i32,
+}
+
+fn parse_input() -> std::io::Result<Vec<Instruction>> {
     let list = BufReader::new(File::open("input")?)
         .lines()
         .map(Result::unwrap)
@@ -103,43 +121,36 @@ fn parse_input() -> std::io::Result<Vec<(Action, i32)>> {
     Ok(list
         .iter()
         .map(|line| line.split_at(1))
-        .map(|tuple| {
-            (
-                match tuple.0 {
-                    "N" => Action::North,
-                    "S" => Action::South,
-                    "E" => Action::East,
-                    "W" => Action::West,
-                    "L" => Action::Left,
-                    "R" => Action::Right,
-                    "F" => Action::Forward,
-                    _ => unreachable!(),
-                },
-                tuple.1.parse::<i32>().unwrap(),
-            )
+        .map(|tuple| Instruction {
+            action: match tuple.0 {
+                "N" => Action::North,
+                "S" => Action::South,
+                "E" => Action::East,
+                "W" => Action::West,
+                "L" => Action::Left,
+                "R" => Action::Right,
+                "F" => Action::Forward,
+                _ => unreachable!(),
+            },
+            value: tuple.1.parse::<i32>().unwrap(),
         })
         .collect::<Vec<_>>())
 }
 
-fn eval(
-    direction: Action,
-    action: Action,
-    value: i32,
-    position: (i32, i32),
-) -> (Action, (i32, i32)) {
-    match action {
+fn eval(direction: Action, instruction: Instruction, position: (i32, i32)) -> (Action, (i32, i32)) {
+    match instruction.action {
         Action::North | Action::South | Action::East | Action::West => {
             let mut pos = position;
-            let dir = forward(action);
-            pos.0 += value * dir.0;
-            pos.1 += value * dir.1;
+            let dir = forward(instruction.action);
+            pos.0 += instruction.value * dir.0;
+            pos.1 += instruction.value * dir.1;
             (direction, pos)
         }
         Action::Left | Action::Right => {
             let mut deg = direction_to_degrees(direction);
-            deg += match action {
-                Action::Left => value,
-                Action::Right => -value,
+            deg += match instruction.action {
+                Action::Left => instruction.value,
+                Action::Right => -instruction.value,
                 _ => unreachable!(),
             };
             while deg < 0 {
@@ -151,22 +162,22 @@ fn eval(
         Action::Forward => {
             let mut pos = position;
             let dir = forward(direction);
-            pos.0 += value * dir.0;
-            pos.1 += value * dir.1;
+            pos.0 += instruction.value * dir.0;
+            pos.1 += instruction.value * dir.1;
             (direction, pos)
         }
     }
 }
 
 fn part_one() -> std::io::Result<usize> {
-    let actions = parse_input()?;
-    //println! {"{:?}", actions};
+    let instructions = parse_input()?;
+    //println! {"{:?}", instructions};
 
     // We're starting in the east direction.
     let mut situation = (Action::East, (0, 0));
-    for action in actions {
+    for instruction in instructions {
         //let old = situation.clone();
-        situation = eval(situation.0, action.0, action.1, situation.1);
+        situation = eval(situation.0, instruction, situation.1);
         //println!("{:?} + {:?} = {:?}", old, action, situation);
     }
     println!("{:?}", situation);
@@ -174,8 +185,151 @@ fn part_one() -> std::io::Result<usize> {
     Ok((situation.1 .0.abs() + situation.1 .1.abs()) as usize)
 }
 
+/*
+--- Part Two ---
+
+Before you can give the destination to the captain, you realize that the actual action meanings were
+printed on the back of the instructions the whole time.
+
+Almost all of the actions indicate how to move a waypoint which is relative to the ship's position:
+
+    Action N means to move the waypoint north by the given value.
+    Action S means to move the waypoint south by the given value.
+    Action E means to move the waypoint east by the given value.
+    Action W means to move the waypoint west by the given value.
+    Action L means to rotate the waypoint around the ship left (counter-clockwise) the given number
+    of degrees.
+    Action R means to rotate the waypoint around the ship right (clockwise) the given number of
+    degrees.
+    Action F means to move forward to the waypoint a number of times equal to the given value.
+
+The waypoint starts 10 units east and 1 unit north relative to the ship. The waypoint is relative to
+the ship; that is, if the ship moves, the waypoint moves with it.
+
+For example, using the same instructions as above:
+
+    F10 moves the ship to the waypoint 10 times (a total of 100 units east and 10 units north),
+        leaving the ship at east 100, north 10. The waypoint stays 10 units east and 1 unit north of
+        the ship.
+    N3 moves the waypoint 3 units north to 10 units east and 4 units north of the ship. The ship
+        remains at east 100, north 10.
+    F7 moves the ship to the waypoint 7 times (a total of 70 units east and 28 units north), leaving
+        the ship at east 170, north 38. The waypoint stays 10 units east and 4 units north of the
+        ship.
+    R90 rotates the waypoint around the ship clockwise 90 degrees, moving it to 4 units east and 10
+        units south of the ship. The ship remains at east 170, north 38.
+    F11 moves the ship to the waypoint 11 times (a total of 44 units east and 110 units south),
+        leaving the ship at east 214, south 72. The waypoint stays 4 units east and 10 units south
+        of the ship.
+
+After these operations, the ship's Manhattan distance from its starting position is 214 + 72 = 286.
+
+Figure out where the navigation instructions actually lead. What is the Manhattan distance between that location and the ship's starting position?
+*/
+
+#[derive(Debug, Copy, Clone)]
+struct Situation {
+    ship: Ship,
+    waypoint: Waypoint,
+}
+
+fn integer_sin(angle: i32) -> i32 {
+    match angle {
+        0 => 0,
+        90 => 1,
+        180 => 0,
+        270 => -1,
+        _ => unreachable!(),
+    }
+}
+
+fn integer_cos(angle: i32) -> i32 {
+    match angle {
+        0 => 1,
+        90 => 0,
+        180 => -1,
+        270 => 0,
+        _ => unreachable!(),
+    }
+}
+
+fn rotate(point: Waypoint, angle: i32) -> Waypoint {
+    let cos_t = integer_cos(angle);
+    let sin_t = integer_sin(angle);
+    /*
+    println!(
+        "{:?}, angle = {}: cos = {}, sin = {}",
+        point, angle, cos_t, sin_t
+    );
+    */
+    Waypoint {
+        x: point.x * cos_t - point.y * sin_t,
+        y: point.x * sin_t + point.y * cos_t,
+    }
+}
+
+fn eval_two(situation: Situation, instruction: Instruction) -> Situation {
+    match instruction.action {
+        Action::North | Action::South | Action::East | Action::West => {
+            // move the waypoint
+            let mut pos = situation.waypoint;
+            let dir = forward(instruction.action);
+            pos.x += instruction.value * dir.0;
+            pos.y += instruction.value * dir.1;
+            Situation {
+                ship: situation.ship,
+                waypoint: pos,
+            }
+        }
+        Action::Left | Action::Right => {
+            // rotate the waypoint around the ship
+            let mut deg = match instruction.action {
+                Action::Left => instruction.value,
+                Action::Right => -instruction.value,
+                _ => unreachable!(),
+            };
+            while deg < 0 {
+                deg += 360;
+            }
+            deg %= 360;
+            Situation {
+                ship: situation.ship,
+                waypoint: rotate(situation.waypoint, deg),
+            }
+        }
+        Action::Forward => {
+            // move forward to the waypoint a number of times equal to the given value
+            let mut pos = situation.ship;
+            pos.x += instruction.value * situation.waypoint.x;
+            pos.y += instruction.value * situation.waypoint.y;
+            Situation {
+                ship: pos,
+                waypoint: situation.waypoint,
+            }
+        }
+    }
+}
+
+fn part_two() -> std::io::Result<usize> {
+    let instructions = parse_input()?;
+    //println! {"{:?}", actions};
+
+    let mut situation = Situation {
+        ship: Ship { x: 0, y: 0 },
+        waypoint: Waypoint { x: 10, y: 1 },
+    };
+    for instruction in instructions {
+        //let old = situation.clone();
+        situation = eval_two(situation, instruction);
+        //println!("{:?} + {:?} = {:?}", old, instruction, situation);
+    }
+    println!("{:?}", situation);
+
+    Ok((situation.ship.x.abs() + situation.ship.y.abs()) as usize)
+}
+
 fn main() {
     println!("=== Advent of Code Day 12 ===");
     println!("Part One: {}", part_one().unwrap_or(0));
-    //println!("Part Two: {}", part_two().unwrap_or(0));
+    println!("Part Two: {}", part_two().unwrap_or(0));
 }
