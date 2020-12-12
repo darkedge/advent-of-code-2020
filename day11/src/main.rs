@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -109,10 +108,178 @@ Simulate your seating area by applying the seating rules repeatedly until no sea
 many seats end up occupied?
 */
 
-fn part_one() -> std::io::Result<usize> {
-    let mut list = BufReader::new(File::open("input")?).lines();
+#[derive(Debug, Copy, Clone, PartialEq)]
+enum Position {
+    Floor,
+    EmptySeat,
+    OccupiedSeat,
+}
 
-    Ok(0)
+fn part_one() -> std::io::Result<usize> {
+    let list = BufReader::new(File::open("input")?)
+        .lines()
+        .map(Result::unwrap)
+        .collect::<Vec<_>>();
+
+    let width = list.first().unwrap().chars().count();
+    let height = list.len();
+    println!("width: {}, height: {}", width, height);
+
+    let mut seating_area_chunks = vec![Position::Floor; width * height];
+    let mut seating_area_vec = seating_area_chunks
+        .as_mut_slice()
+        .chunks_mut(width)
+        .collect::<Vec<_>>();
+    let seating_area = seating_area_vec.as_mut_slice();
+
+    for (i, line) in list.iter().enumerate() {
+        for (j, c) in line.chars().enumerate() {
+            seating_area[i][j] = match c {
+                '.' => Position::Floor,
+                'L' => Position::EmptySeat,
+                '#' => Position::OccupiedSeat,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    //println!("{:?}", seating_area);
+
+    let mut num_prev_seats = 0;
+    let mut num_iterations = 0;
+    loop {
+        let mut num_seats = 0;
+        //evaluate
+        let mut iteration_chunks = vec![Position::Floor; width * height];
+        let mut iteration_vec = iteration_chunks
+            .as_mut_slice()
+            .chunks_mut(width)
+            .collect::<Vec<_>>();
+        let iteration = iteration_vec.as_mut_slice();
+        // Iterate cells
+        for y in 0..height {
+            for x in 0..width {
+                // Closure to check adjacent cells
+                let adjacent_empty = || {
+                    // 3x3
+                    //print!("{},{} - ", y, x);
+                    for i in -1..=1 {
+                        for j in -1..=1 {
+                            if !(i == 0 && j == 0) {
+                                // Range check
+                                let p = y as i32 + i;
+                                let q = x as i32 + j;
+                                if p >= 0 && p < height as i32 && q >= 0 && q < width as i32 {
+                                    //print!("{},{}; ", p, q);
+                                    // Check for occupied seat
+                                    if seating_area[p as usize][q as usize]
+                                        == Position::OccupiedSeat
+                                    {
+                                        //println!();
+                                        return false;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    //println!();
+                    return true;
+                };
+                let adjacent_occupied = || {
+                    // 3x3
+                    let mut num_occupied = 0;
+                    for i in -1..=1 {
+                        for j in -1..=1 {
+                            if !(i == 0 && j == 0) {
+                                // Range check
+                                let p = y as i32 + i;
+                                let q = x as i32 + j;
+                                if p >= 0 && p < height as i32 && q >= 0 && q < width as i32 {
+                                    // Check for occupied seat
+                                    if seating_area[p as usize][q as usize]
+                                        == Position::OccupiedSeat
+                                    {
+                                        num_occupied += 1;
+                                        if num_occupied == 4 {
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                };
+
+                // rules
+                let pos = seating_area[y][x];
+                iteration[y][x] = match pos {
+                    Position::EmptySeat => {
+                        if adjacent_empty() {
+                            Position::OccupiedSeat
+                        } else {
+                            pos
+                        }
+                    }
+                    Position::OccupiedSeat => {
+                        if adjacent_occupied() {
+                            Position::EmptySeat
+                        } else {
+                            pos
+                        }
+                    }
+                    _ => pos,
+                };
+                if iteration[y][x] == Position::OccupiedSeat {
+                    num_seats += 1;
+                }
+            }
+        }
+        //println!("{:?}", iteration);
+        num_iterations += 1;
+        /*
+        println!(
+            "num_iterations: {}, num_seats: {}, num_prev_seats: {}",
+            num_iterations, num_seats, num_prev_seats
+        );
+        */
+        /*
+        for y in 0..height {
+            for x in 0..width {
+                print!(
+                    "{}",
+                    match iteration[y][x] {
+                        Position::Floor => '.',
+                        Position::EmptySeat => 'L',
+                        Position::OccupiedSeat => '#',
+                        _ => unreachable!(),
+                    }
+                );
+            }
+            println!();
+        }
+        println!();
+        */
+
+        // DEBUG
+        /*
+        if num_iterations == 2 {
+            break;
+        }
+        */
+        if num_seats == num_prev_seats {
+            break;
+        }
+        num_prev_seats = num_seats;
+        for y in 0..height {
+            for x in 0..width {
+                seating_area[y][x] = iteration[y][x];
+            }
+        }
+    }
+    println!("Iterations: {}", num_iterations);
+
+    Ok(num_prev_seats)
 }
 
 fn main() {
