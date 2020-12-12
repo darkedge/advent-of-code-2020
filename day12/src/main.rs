@@ -53,23 +53,54 @@ Figure out where the navigation instructions lead. What is the Manhattan distanc
 
 */
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum Action {
     North,
     South,
     East,
     West,
-    Left, // Degrees!
+    Left,  // Degrees!
     Right, // Degrees!
     Forward,
 }
 
-fn part_one() -> std::io::Result<usize> {
+fn degrees_to_direction(degrees: i32) -> Action {
+    match degrees {
+        0 => Action::East,
+        90 => Action::North,
+        180 => Action::West,
+        270 => Action::South,
+        _ => unreachable!(),
+    }
+}
+
+fn direction_to_degrees(direction: Action) -> i32 {
+    match direction {
+        Action::East => 0,
+        Action::North => 90,
+        Action::West => 180,
+        Action::South => 270,
+        _ => unreachable!(),
+    }
+}
+
+// East/North = +
+fn forward(direction: Action) -> (i32, i32) {
+    match direction {
+        Action::East => (0, 1),
+        Action::North => (1, 0),
+        Action::West => (0, -1),
+        Action::South => (-1, 0),
+        _ => unreachable!(),
+    }
+}
+
+fn parse_input() -> std::io::Result<Vec<(Action, i32)>> {
     let list = BufReader::new(File::open("input")?)
         .lines()
         .map(Result::unwrap)
         .collect::<Vec<_>>();
-    let bla = list
+    Ok(list
         .iter()
         .map(|line| line.split_at(1))
         .map(|tuple| {
@@ -84,17 +115,63 @@ fn part_one() -> std::io::Result<usize> {
                     "F" => Action::Forward,
                     _ => unreachable!(),
                 },
-                tuple.1.parse::<usize>().unwrap(),
+                tuple.1.parse::<i32>().unwrap(),
             )
         })
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>())
+}
 
-        println!{"{:?}", bla};
+fn eval(
+    direction: Action,
+    action: Action,
+    value: i32,
+    position: (i32, i32),
+) -> (Action, (i32, i32)) {
+    match action {
+        Action::North | Action::South | Action::East | Action::West => {
+            let mut pos = position;
+            let dir = forward(action);
+            pos.0 += value * dir.0;
+            pos.1 += value * dir.1;
+            (direction, pos)
+        }
+        Action::Left | Action::Right => {
+            let mut deg = direction_to_degrees(direction);
+            deg += match action {
+                Action::Left => value,
+                Action::Right => -value,
+                _ => unreachable!(),
+            };
+            while deg < 0 {
+                deg += 360;
+            }
+            deg %= 360;
+            (degrees_to_direction(deg), position)
+        }
+        Action::Forward => {
+            let mut pos = position;
+            let dir = forward(direction);
+            pos.0 += value * dir.0;
+            pos.1 += value * dir.1;
+            (direction, pos)
+        }
+    }
+}
+
+fn part_one() -> std::io::Result<usize> {
+    let actions = parse_input()?;
+    //println! {"{:?}", actions};
 
     // We're starting in the east direction.
-    // We can strafe! :o
+    let mut situation = (Action::East, (0, 0));
+    for action in actions {
+        //let old = situation.clone();
+        situation = eval(situation.0, action.0, action.1, situation.1);
+        //println!("{:?} + {:?} = {:?}", old, action, situation);
+    }
+    println!("{:?}", situation);
 
-    Ok(0)
+    Ok((situation.1 .0.abs() + situation.1 .1.abs()) as usize)
 }
 
 fn main() {
