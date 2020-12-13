@@ -1,3 +1,5 @@
+extern crate num;
+
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -68,33 +70,33 @@ you'll need to wait for that bus?
 */
 
 #[derive(Debug, Clone)]
-struct Input {
-    estimate: i32,
-    bus_ids: Vec<i32>,
+struct InputOne {
+    estimate: i64,
+    bus_ids: Vec<i64>,
 }
 
-fn parse_input() -> std::io::Result<Input> {
+fn parse_input_one() -> std::io::Result<InputOne> {
     let mut list = BufReader::new(File::open("input")?)
         .lines()
         .map(Result::unwrap);
 
-    let estimate = list.next().unwrap().parse::<i32>().unwrap();
+    let estimate = list.next().unwrap().parse::<i64>().unwrap();
     let bus_ids = list
         .next()
         .unwrap()
         .split(',')
         .filter(|x| x != &"x")
-        .map(|x| x.parse::<i32>().unwrap())
+        .map(|x| x.parse::<i64>().unwrap())
         .collect();
 
-    Ok(Input { estimate, bus_ids })
+    Ok(InputOne { estimate, bus_ids })
 }
 
-fn part_one() -> std::io::Result<i32> {
-    let input = parse_input()?;
+fn part_one() -> std::io::Result<i64> {
+    let input = parse_input_one()?;
     println!("{:?}", input);
     let mut id = 0;
-    let mut min_remainder = i32::MAX;
+    let mut min_remainder = i64::MAX;
     for bus_id in input.bus_ids {
         let remainder = bus_id - (input.estimate % bus_id);
         if remainder < min_remainder {
@@ -108,8 +110,169 @@ fn part_one() -> std::io::Result<i32> {
     Ok(id * min_remainder)
 }
 
+/*
+--- Part Two ---
+
+The shuttle company is running a contest: one gold coin for anyone that can find the earliest
+timestamp such that the first bus ID departs at that time and each subsequent listed bus ID departs
+at that subsequent minute. (The first line in your input is no longer relevant.)
+
+For example, suppose you have the same list of bus IDs as above:
+
+7,13,x,x,59,x,31,19
+
+An x in the schedule means there are no constraints on what bus IDs must depart at that time.
+
+This means you are looking for the earliest timestamp (called t) such that:
+
+    Bus ID 7 departs at timestamp t.
+    Bus ID 13 departs one minute after timestamp t.
+    There are no requirements or restrictions on departures at two or three minutes after timestamp
+    t.
+    Bus ID 59 departs four minutes after timestamp t.
+    There are no requirements or restrictions on departures at five minutes after timestamp t.
+    Bus ID 31 departs six minutes after timestamp t.
+    Bus ID 19 departs seven minutes after timestamp t.
+
+The only bus departures that matter are the listed bus IDs at their specific offsets from t. Those
+bus IDs can depart at other times, and other bus IDs can depart at those times. For example, in the
+list above, because bus ID 19 must depart seven minutes after the timestamp at which bus ID 7
+departs, bus ID 7 will always also be departing with bus ID 19 at seven minutes after timestamp t.
+
+In this example, the earliest timestamp at which this occurs is 1068781:
+
+time     bus 7   bus 13  bus 59  bus 31  bus 19
+1068773    .       .       .       .       .
+1068774    D       .       .       .       .
+1068775    .       .       .       .       .
+1068776    .       .       .       .       .
+1068777    .       .       .       .       .
+1068778    .       .       .       .       .
+1068779    .       .       .       .       .
+1068780    .       .       .       .       .
+1068781    D       .       .       .       .
+1068782    .       D       .       .       .
+1068783    .       .       .       .       .
+1068784    .       .       .       .       .
+1068785    .       .       D       .       .
+1068786    .       .       .       .       .
+1068787    .       .       .       D       .
+1068788    D       .       .       .       D
+1068789    .       .       .       .       .
+1068790    .       .       .       .       .
+1068791    .       .       .       .       .
+1068792    .       .       .       .       .
+1068793    .       .       .       .       .
+1068794    .       .       .       .       .
+1068795    D       D       .       .       .
+1068796    .       .       .       .       .
+1068797    .       .       .       .       .
+
+In the above example, bus ID 7 departs at timestamp 1068788 (seven minutes after t). This is fine;
+the only requirement on that minute is that bus ID 19 departs then, and it does.
+
+Here are some other examples:
+
+    The earliest timestamp that matches the list 17,x,13,19 is 3417.
+    67,7,59,61 first occurs at timestamp 754018.
+    67,x,7,59,61 first occurs at timestamp 779210.
+    67,7,x,59,61 first occurs at timestamp 1261476.
+    1789,37,47,1889 first occurs at timestamp 1202161486.
+
+However, with so many bus IDs in your list, surely the actual earliest timestamp will be larger than
+100000000000000!
+
+What is the earliest timestamp such that all of the listed bus IDs depart at offsets matching their
+positions in the list?
+*/
+
+fn parse_input_two() -> std::io::Result<Vec<(i64, i64)>> {
+    Ok(BufReader::new(File::open("input")?)
+        .lines()
+        .map(Result::unwrap)
+        .skip(1) // skip estimate (irrelevant for part two)
+        .next()
+        .unwrap()
+        .split(',')
+        .enumerate()
+        .filter(|x| x.1 != "x")
+        .map(|x| (x.1.parse::<i64>().unwrap(), x.0 as i64))
+        .collect())
+}
+
+// Find factors to keep difference of n
+// Those can be added to every LCM increment
+// Keep first prime as comparator?
+// Somehow find a way to combine factors
+// Find ratio of first prime to all other primes(n) and find the difference n
+fn part_two() -> std::io::Result<i64> {
+    let input = parse_input_two()?;
+    println!("{:?}", input);
+
+    let base_prime = input.first().unwrap().0;
+
+    let mut vec = vec![];
+    for pair in input.iter().skip(1) {
+        // tuple: 0 is the prime, 1 is the target difference
+        let mut prime_products = (base_prime, pair.0);
+        loop {
+            let d = prime_products.1 - prime_products.0;
+            //println!("{:?}, diff={}", diff, d);
+            if d == pair.1 {
+                // The prime products are apart by the right prime's target distance
+                // Now we can keep the left prime's multiplier.
+                break;
+            }
+            if d > pair.1 {
+                prime_products.0 += base_prime
+            } else {
+                prime_products.1 += pair.0;
+            }
+        }
+        // diff.0 is t. diff.1 - diff.0 is the target difference.
+        let p = (prime_products.0, base_prime * pair.0);
+        vec.push(p);
+        println!("{} + n * {}", prime_products.0, base_prime * pair.0);
+    }
+    // (offset, cycle)
+    let first = vec.first().unwrap();
+    let left_base = first.0;
+    let mut left_increment = first.1;
+    for pair in vec.iter().skip(1) {
+        let mut x = 1;
+        let mut y = 1;
+        loop {
+            let left = left_base + x * left_increment;
+            let right = pair.0 + y * pair.1;
+            if left == right {
+                break;
+            }
+            if left < right {
+                x += 1;
+            } else {
+                y += (left - right) / pair.1;
+                if left > pair.0 + y * pair.1 {
+                    y += 1;
+                }
+            }
+        }
+
+        // now, we know that with every x "left", we are synced with "right"
+        left_increment = x * left_increment;
+        println!("{} {}", x, y);
+    }
+    let t = left_base + left_increment;
+    println!("t= {}", t);
+
+    for pair in input {
+        println!("x = {}, (x - t mod x) mod x = {}", pair.0, (pair.0 - t % pair.0) % pair.0);
+    }
+
+    Ok(t)
+}
+
 fn main() {
     println!("=== Advent of Code Day 13 ===");
     println!("Part One: {}", part_one().unwrap_or(0));
-    //println!("Part Two: {}", part_two().unwrap_or(0));
+    println!("Part Two: {}", part_two().unwrap_or(0));
 }
