@@ -224,85 +224,47 @@ fn part_two() -> std::io::Result<i64> {
     let input = parse_input_two()?;
     println!("{:?}", input);
 
-    let first_prime = input.first().unwrap().id;
-
-    let mut bus_cycles = vec![BusCycle {
-        id: first_prime,
-        minutes_from_lcm: 0,
-    }];
-    // Find n for all other buses
-    // where (n * first_prime % bus.id == bus.id - schedule_offset)
+    let first = input.first().unwrap();
+    let mut diff = first.id;
+    let mut t = 0;
     for bus in input.iter().skip(1) {
         let mut cmp = -bus.schedule_offset;
         while cmp < 0 {
             cmp += bus.id;
         }
 
-        let mut acc = first_prime;
-        while acc % bus.id != cmp {
-            //println!("test: {} % {} != {}", acc, bus.id, cmp);
-            acc += first_prime;
-        }
-        bus_cycles.push(BusCycle {
-            id: bus.id,
-            minutes_from_lcm: acc,
-        });
-    }
-    println!("bus_cycles: {:?}", bus_cycles);
-
-    let first_cycle = bus_cycles.first().unwrap();
-    let mut t = first_cycle.id;
-    for bus_cycle in bus_cycles.iter().skip(1) {
-        // Reset cycle is product of first bus ID with other bus ID
-        let aligned_minute = t * bus_cycle.id;
-        let mut acc = aligned_minute;
-        while (acc + bus_cycle.minutes_from_lcm) % first_cycle.id != 0 {
-            acc += aligned_minute;
-        }
-        t = acc + bus_cycle.minutes_from_lcm;
-    }
-
-    /*
-    // Now, for every other bus:
-    // Find least common multiple "x" between first bus and other bus
-    // Such that the schedule_offset is aligned at "x" intervals
-    // Set this as the new value for the first bus to multiply "x" with
-    // Go to the next other bus
-    let mut factor = minutes_from_zero.first().unwrap();
-    for bus_minutes in minutes_from_zero.iter().skip(1) {
-        let mut x = 1;
-        let mut y = 1;
+        // Find first occurance
         loop {
-            let left = x * factor;
-            let right = pair.0 + y * pair.1;
-            if left == right {
+            t += diff;
+            if t % bus.id == cmp {
+                println!("Bus ID {}: t0 = {}", bus.id, t);
                 break;
             }
-            if left < right {
-                x += 1;
-            } else {
-                y += (left - right) / pair.1;
-                if left > pair.0 + y * pair.1 {
-                    y += 1;
-                }
-            }
         }
 
-        // now, we know that with every x "left", we are synced with "right"
-        left_increment = x * left_increment;
-        println!("{} {}", x, y);
+        // Find the repetition
+        let mut t1 = t;
+        loop {
+            t1 += diff;
+            if t1 % bus.id == cmp {
+                println!("Bus ID {}: t1 = {}", bus.id, t1);
+                break;
+            }
+        }
+        diff = t1 - t;
     }
-    let t = left_base + left_increment;
-    println!("t = {}", t);
-    */
 
     // Verification
-    for pair in input {
-        let id = pair.id;
+    for bus in input {
+        let mut cmp = -bus.schedule_offset;
+        while cmp < 0 {
+            cmp += bus.id;
+        }
+        let id = bus.id;
         print!(
             "(Bus ID {},\tTarget = {})\t{} % {}\t= {},\t{}\t- {}\t= {}",
             id,
-            pair.schedule_offset,
+            bus.schedule_offset,
             t,
             id,
             t % id,
@@ -310,17 +272,14 @@ fn part_two() -> std::io::Result<i64> {
             t % id,
             id - t % id
         );
-        if id - t % id == pair.schedule_offset || pair.schedule_offset == 0
-        {
-            println!("\tOK");
-        }
-        else
-        {
-            println!("\tWRONG")
+        if t % id == cmp || bus.schedule_offset == 0 {
+            println!(" OK");
+        } else {
+            println!(" WRONG")
         }
     }
 
-    Ok(0)
+    Ok(t)
 }
 
 fn main() {
