@@ -186,7 +186,19 @@ What is the earliest timestamp such that all of the listed bus IDs depart at off
 positions in the list?
 */
 
-fn parse_input_two() -> std::io::Result<Vec<(i64, i64)>> {
+#[derive(Debug, Clone)]
+struct Bus {
+    id: i64,
+    schedule_offset: i64,
+}
+
+#[derive(Debug, Clone)]
+struct BusCycle {
+    id: i64,
+    minutes_from_lcm: i64,
+}
+
+fn parse_input_two() -> std::io::Result<Vec<Bus>> {
     Ok(BufReader::new(File::open("input")?)
         .lines()
         .map(Result::unwrap)
@@ -196,7 +208,10 @@ fn parse_input_two() -> std::io::Result<Vec<(i64, i64)>> {
         .split(',')
         .enumerate()
         .filter(|x| x.1 != "x")
-        .map(|x| (x.1.parse::<i64>().unwrap(), x.0 as i64))
+        .map(|x| Bus {
+            id: x.1.parse::<i64>().unwrap(),
+            schedule_offset: x.0 as i64,
+        })
         .collect())
 }
 
@@ -209,40 +224,56 @@ fn part_two() -> std::io::Result<i64> {
     let input = parse_input_two()?;
     println!("{:?}", input);
 
-    let base_prime = input.first().unwrap().0;
+    let first_prime = input.first().unwrap().id;
 
-    let mut vec = vec![];
-    for pair in input.iter().skip(1) {
-        // tuple: 0 is the prime, 1 is the target difference
-        let mut prime_products = (base_prime, pair.0);
-        loop {
-            let d = prime_products.1 - prime_products.0;
-            //println!("{:?}, diff={}", diff, d);
-            if d == pair.1 {
-                // The prime products are apart by the right prime's target distance
-                // Now we can keep the left prime's multiplier.
-                break;
-            }
-            if d > pair.1 {
-                prime_products.0 += base_prime
-            } else {
-                prime_products.1 += pair.0;
-            }
+    let mut bus_cycles = vec![BusCycle {
+        id: first_prime,
+        minutes_from_lcm: 0,
+    }];
+    // Find n for all other buses
+    // where (n * first_prime % bus.id == bus.id - schedule_offset)
+    for bus in input.iter().skip(1) {
+        let mut cmp = -bus.schedule_offset;
+        while cmp < 0 {
+            cmp += bus.id;
         }
-        // diff.0 is t. diff.1 - diff.0 is the target difference.
-        let p = (prime_products.0, base_prime * pair.0);
-        vec.push(p);
-        println!("{} + n * {}", prime_products.0, base_prime * pair.0);
+
+        let mut acc = first_prime;
+        while acc % bus.id != cmp {
+            //println!("test: {} % {} != {}", acc, bus.id, cmp);
+            acc += first_prime;
+        }
+        bus_cycles.push(BusCycle {
+            id: bus.id,
+            minutes_from_lcm: acc,
+        });
     }
-    // (offset, cycle)
-    let first = vec.first().unwrap();
-    let left_base = first.0;
-    let mut left_increment = first.1;
-    for pair in vec.iter().skip(1) {
+    println!("bus_cycles: {:?}", bus_cycles);
+
+    let first_cycle = bus_cycles.first().unwrap();
+    let mut t = first_cycle.id;
+    for bus_cycle in bus_cycles.iter().skip(1) {
+        // Reset cycle is product of first bus ID with other bus ID
+        let aligned_minute = t * bus_cycle.id;
+        let mut acc = aligned_minute;
+        while (acc + bus_cycle.minutes_from_lcm) % first_cycle.id != 0 {
+            acc += aligned_minute;
+        }
+        t = acc + bus_cycle.minutes_from_lcm;
+    }
+
+    /*
+    // Now, for every other bus:
+    // Find least common multiple "x" between first bus and other bus
+    // Such that the schedule_offset is aligned at "x" intervals
+    // Set this as the new value for the first bus to multiply "x" with
+    // Go to the next other bus
+    let mut factor = minutes_from_zero.first().unwrap();
+    for bus_minutes in minutes_from_zero.iter().skip(1) {
         let mut x = 1;
         let mut y = 1;
         loop {
-            let left = left_base + x * left_increment;
+            let left = x * factor;
             let right = pair.0 + y * pair.1;
             if left == right {
                 break;
@@ -262,13 +293,34 @@ fn part_two() -> std::io::Result<i64> {
         println!("{} {}", x, y);
     }
     let t = left_base + left_increment;
-    println!("t= {}", t);
+    println!("t = {}", t);
+    */
 
+    // Verification
     for pair in input {
-        println!("x = {}, (x - t mod x) mod x = {}", pair.0, (pair.0 - t % pair.0) % pair.0);
+        let id = pair.id;
+        print!(
+            "(Bus ID {},\tTarget = {})\t{} % {}\t= {},\t{}\t- {}\t= {}",
+            id,
+            pair.schedule_offset,
+            t,
+            id,
+            t % id,
+            id,
+            t % id,
+            id - t % id
+        );
+        if id - t % id == pair.schedule_offset || pair.schedule_offset == 0
+        {
+            println!("\tOK");
+        }
+        else
+        {
+            println!("\tWRONG")
+        }
     }
 
-    Ok(t)
+    Ok(0)
 }
 
 fn main() {
