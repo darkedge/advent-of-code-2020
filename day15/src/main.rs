@@ -72,7 +72,7 @@ fn parse_input() -> std::io::Result<Vec<i32>> {
         .collect())
 }
 
-fn part_one() -> std::io::Result<i32> {
+fn solve(n: usize) -> std::io::Result<i32> {
     let list = parse_input()?;
     //println!("{:?}", list);
     let mut timestamps: HashMap<i32, i32> = HashMap::new();
@@ -82,7 +82,7 @@ fn part_one() -> std::io::Result<i32> {
         t += 1;
     }
     let mut last_number_spoken = list.last().unwrap().clone();
-    for _ in 0..=2020 - list.len() - 1{
+    for _ in 0..=n - list.len() - 1 {
         match &timestamps.get(&last_number_spoken) {
             Some(&prev) => {
                 timestamps.insert(last_number_spoken, t);
@@ -98,8 +98,33 @@ fn part_one() -> std::io::Result<i32> {
     Ok(last_number_spoken)
 }
 
+fn part_one() -> std::io::Result<i32> {
+    solve(2020)
+}
+
+/*
+--- Part Two ---
+
+Impressed, the Elves issue you a challenge: determine the 30000000th number spoken. For example,
+given the same starting numbers as above:
+
+    Given 0,3,6, the 30000000th number spoken is 175594.
+    Given 1,3,2, the 30000000th number spoken is 2578.
+    Given 2,1,3, the 30000000th number spoken is 3544142.
+    Given 1,2,3, the 30000000th number spoken is 261214.
+    Given 2,3,1, the 30000000th number spoken is 6895259.
+    Given 3,2,1, the 30000000th number spoken is 18.
+    Given 3,1,2, the 30000000th number spoken is 362.
+
+Given your starting numbers, what will be the 30000000th number spoken?
+*/
+
+fn part_two() -> std::io::Result<i32> {
+    solve(30000000)
+}
+
 fn main() {
     println!("=== Advent of Code Day 15 ===");
     println!("Part One: {}", part_one().unwrap_or(0));
-    //println!("Part Two: {}", part_two().unwrap_or(0));
+    println!("Part Two: {}", part_two().unwrap_or(0));
 }
