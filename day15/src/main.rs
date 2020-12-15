@@ -61,12 +61,41 @@ Here are a few more examples:
 Given your starting numbers, what will be the 2020th number spoken?
 */
 
-fn part_one() -> std::io::Result<u64> {
-    let list = BufReader::new(File::open("input")?)
+fn parse_input() -> std::io::Result<Vec<i32>> {
+    Ok(BufReader::new(File::open("input")?)
         .lines()
         .map(Result::unwrap)
-        .collect::<Vec<_>>();
-    Ok(0)
+        .next()
+        .unwrap()
+        .split(",")
+        .map(|x| x.parse::<i32>().unwrap())
+        .collect())
+}
+
+fn part_one() -> std::io::Result<i32> {
+    let list = parse_input()?;
+    //println!("{:?}", list);
+    let mut timestamps: HashMap<i32, i32> = HashMap::new();
+    let mut t = 0;
+    for &i in list.iter().take(list.len() - 1) {
+        timestamps.insert(i, t);
+        t += 1;
+    }
+    let mut last_number_spoken = list.last().unwrap().clone();
+    for _ in 0..=2020 - list.len() - 1{
+        match &timestamps.get(&last_number_spoken) {
+            Some(&prev) => {
+                timestamps.insert(last_number_spoken, t);
+                last_number_spoken = t - prev;
+            }
+            None => {
+                timestamps.insert(last_number_spoken, t);
+                last_number_spoken = 0;
+            }
+        }
+        t += 1;
+    }
+    Ok(last_number_spoken)
 }
 
 fn main() {
