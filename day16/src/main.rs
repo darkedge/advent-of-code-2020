@@ -69,15 +69,85 @@ Adding together all of the invalid values produces your ticket scanning error ra
 Consider the validity of the nearby tickets you scanned. What is your ticket scanning error rate?
 */
 
-fn parse_input() -> std::io::Result<Vec<i32>> {
-    Ok(BufReader::new(File::open("input")?)
+#[derive(Debug, Clone)]
+struct Range {
+    min: i32, // inclusive
+    max: i32, // inclusive
+}
+
+#[derive(Debug, Clone)]
+struct Rule {
+    name: String,
+    range_first: Range,
+    range_second: Range,
+}
+
+#[derive(Debug, Clone)]
+struct Ticket {
+    values: Vec<i32>,
+}
+
+#[derive(Debug, Clone)]
+struct Input {
+    rules: Vec<Rule>,
+    ticket_mine: Ticket,
+    tickets_nearby: Vec<Ticket>,
+}
+
+fn extract_range(string: &str) -> Range {
+    let split_second = string.split("-").map(|x| x.parse::<i32>().unwrap());
+    let range: Vec<_> = split_second
+        .clone()
+        .zip(split_second.clone().skip(1))
+        .map(|tuple| Range {
+            min: tuple.0,
+            max: tuple.1,
+        })
+        .collect();
+    range.first().unwrap().clone()
+}
+
+fn parse_input() -> std::io::Result<Input> {
+    let mut rules: Vec<Rule> = Vec::new();
+    let mut ticket_mine_values: Vec<i32> = Vec::new();
+    let mut tickets_nearby: Vec<Ticket> = Vec::new();
+
+    let input_lines: Vec<_> = BufReader::new(File::open("input")?)
         .lines()
         .map(Result::unwrap)
-        .next()
-        .unwrap()
-        .split(",")
-        .map(|x| x.parse::<i32>().unwrap())
-        .collect())
+        .filter(|x| !x.is_empty())
+        .collect();
+
+    // rules
+    let mut it = input_lines.iter();
+    loop {
+        let line = it.next().unwrap();
+        if line.contains("your ticket:") {
+            break;
+        }
+
+        let mut split_name = line.split(": ");
+        let name = split_name.next().unwrap().to_owned();
+        let split_or: Vec<_> = split_name.next().unwrap().split(" or ").collect();
+        let range_first = extract_range(split_or[0]);
+        let range_second = extract_range(split_or[1]);
+
+        rules.push(Rule {
+            name,
+            range_first,
+            range_second,
+        })
+    }
+
+    println!("{:?}", rules);
+
+    Ok(Input {
+        rules,
+        ticket_mine: Ticket {
+            values: ticket_mine_values,
+        },
+        tickets_nearby,
+    })
 }
 
 fn part_one() -> std::io::Result<i32> {
