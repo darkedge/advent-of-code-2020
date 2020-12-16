@@ -166,10 +166,28 @@ fn parse_input() -> std::io::Result<Input> {
 
 fn part_one() -> std::io::Result<i32> {
     let input = parse_input()?;
+    //println!("{:?}", input);
 
-    println!("{:?}", input);
+    let mut sum = 0;
+    for ticket in &input.tickets_nearby {
+        sum += ticket.values.iter().fold(0, |acc, x| {
+            let mut has_rule = false;
+            for rule in &input.rules {
+                if (x >= &rule.range_first.min && x <= &rule.range_first.max)
+                    || (x >= &rule.range_second.min && x <= &rule.range_second.max)
+                {
+                    has_rule = true;
+                    break;
+                }
+            }
+            if !has_rule {
+                return acc + *x;
+            }
+            acc
+        });
+    }
 
-    Ok(0)
+    Ok(sum)
 }
 
 fn main() {
