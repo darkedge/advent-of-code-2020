@@ -107,21 +107,30 @@ fn extract_range(string: &str) -> Range {
     range.first().unwrap().clone()
 }
 
+fn parse_ticket(string: &str) -> Ticket {
+    Ticket {
+        values: string
+            .split(",")
+            .map(|x| x.parse::<i32>().unwrap())
+            .collect(),
+    }
+}
+
 fn parse_input() -> std::io::Result<Input> {
     let mut rules: Vec<Rule> = Vec::new();
-    let mut ticket_mine_values: Vec<i32> = Vec::new();
     let mut tickets_nearby: Vec<Ticket> = Vec::new();
 
     let input_lines: Vec<_> = BufReader::new(File::open("input")?)
         .lines()
         .map(Result::unwrap)
-        .filter(|x| !x.is_empty())
+        .filter(|x| !x.is_empty() && !x.contains("nearby tickets:"))
         .collect();
 
     // rules
     let mut it = input_lines.iter();
     loop {
         let line = it.next().unwrap();
+        //println!("{:?}", line);
         if line.contains("your ticket:") {
             break;
         }
@@ -138,20 +147,28 @@ fn parse_input() -> std::io::Result<Input> {
             range_second,
         })
     }
+    //println!("{:?}", rules);
 
-    println!("{:?}", rules);
+    // ticket_mine
+    let ticket_mine = parse_ticket(it.next().unwrap());
+
+    // tickets_nearby
+    for line in it {
+        tickets_nearby.push(parse_ticket(line))
+    }
 
     Ok(Input {
         rules,
-        ticket_mine: Ticket {
-            values: ticket_mine_values,
-        },
+        ticket_mine,
         tickets_nearby,
     })
 }
 
 fn part_one() -> std::io::Result<i32> {
-    let a = parse_input()?;
+    let input = parse_input()?;
+
+    println!("{:?}", input);
+
     Ok(0)
 }
 
