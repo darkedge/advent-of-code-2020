@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -190,8 +191,147 @@ fn part_one() -> std::io::Result<i32> {
     Ok(sum)
 }
 
+/*
+--- Part Two ---
+
+Now that you've identified which tickets contain invalid values, discard those tickets entirely.
+Use the remaining valid tickets to determine which field is which.
+
+Using the valid ranges for each field, determine what order the fields appear on the tickets. The
+order is consistent between all tickets: if seat is the third field, it is the third field on every
+ticket, including your ticket.
+
+For example, suppose you have the following notes:
+
+class: 0-1 or 4-19
+row: 0-5 or 8-19
+seat: 0-13 or 16-19
+
+your ticket:
+11,12,13
+
+nearby tickets:
+3,9,18
+15,1,5
+5,14,9
+
+Based on the nearby tickets in the above example, the first position must be row, the second
+position must be class, and the third position must be seat; you can conclude that in your ticket,
+class is 12, row is 11, and seat is 13.
+
+Once you work out which field is which, look for the six fields on your ticket that start with the
+word departure. What do you get if you multiply those six values together?
+*/
+
+fn rule_applies(rule: &Rule, x: i32) -> bool {
+    (x >= rule.range_first.min && x <= rule.range_first.max)
+        || (x >= rule.range_second.min && x <= rule.range_second.max)
+}
+
+fn rule_applies_list(rule: &Rule, list: &Vec<i32>) -> bool {
+    for value in list {
+        if !rule_applies(rule, *value) {
+            return false;
+        }
+    }
+    true
+}
+
+fn ticket_contains_invalid_values(ticket: &Ticket, rules: &Vec<Rule>) -> bool {
+    for x in &ticket.values {
+        let mut has_rule = false;
+        for rule in rules {
+            if rule_applies(rule, *x) {
+                has_rule = true;
+                break;
+            }
+        }
+        if !has_rule {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn part_two() -> std::io::Result<u64> {
+    let input = parse_input()?;
+
+    // Filter
+    let mut filtered_nearby_tickets: Vec<_> = input
+        .tickets_nearby
+        .iter()
+        .filter(|ticket| !ticket_contains_invalid_values(ticket, &input.rules))
+        .collect();
+    filtered_nearby_tickets.push(&input.ticket_mine);
+
+    // Transpose
+    let len = input.ticket_mine.values.len();
+    let mut matrix_transposed: Vec<Vec<i32>> = vec![];
+    for i in 0..len {
+        matrix_transposed.push(
+            filtered_nearby_tickets
+                .iter()
+                .map(|x| x.values[i])
+                .collect(),
+        );
+    }
+    //println!("{:?}", matrix_transposed[0]);
+
+    let mut rule_set = HashSet::<usize>::new();
+    let mut working_set = HashSet::<usize>::new();
+    let mut ticket_translation = HashMap::<&str, i32>::new();
+    for i in 0..len {
+        rule_set.insert(i);
+        working_set.insert(i);
+    }
+    loop {
+        //println! {"{:?}", rule_set};
+        //println! {"{:?}", working_set};
+        let mut occurrences = HashMap::<usize, Vec<usize>>::new();
+        for i in &rule_set {
+            occurrences.insert(*i, vec![]);
+        }
+        for rule_index in &rule_set {
+            let rule = &input.rules[*rule_index];
+            for list_index in &working_set {
+                if rule_applies_list(rule, &matrix_transposed[*list_index]) {
+                    occurrences.get_mut(&rule_index).unwrap().push(*list_index);
+                }
+            }
+        }
+
+        // Check which rules have one unique assignment
+        for kv in occurrences {
+            let rule_index = &kv.0;
+            let occurrence_list = &kv.1;
+            if occurrence_list.len() == 1 {
+                let list_index = occurrence_list.first().unwrap();
+                //println!("List {} = Rule {}: {}", list_index, rule_index, input.rules[*rule_index].name);
+                ticket_translation.insert(
+                    &input.rules[*rule_index].name,
+                    input.ticket_mine.values[*list_index],
+                );
+                rule_set.remove(rule_index);
+                working_set.remove(&list_index);
+            }
+        }
+
+        if rule_set.is_empty() {
+            break;
+        }
+    }
+    println! {"{:?}", ticket_translation};
+
+    Ok(ticket_translation
+        .iter()
+        .filter(|x| x.0.starts_with("departure"))
+        .map(|x| *x.1 as u64)
+        .fold(1, |acc, x| acc * x))
+}
+
 fn main() {
     println!("=== Advent of Code Day 16 ===");
     println!("Part One: {}", part_one().unwrap_or(0));
-    //println!("Part Two: {}", part_two().unwrap_or(0));
+    println!("Part Two: {}", part_two().unwrap_or(0));
 }
