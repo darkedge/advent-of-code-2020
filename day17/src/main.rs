@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -168,12 +168,49 @@ Starting with your given initial configuration, simulate six cycles. How many cu
 active state after the sixth cycle?
 */
 
-fn part_one() -> std::io::Result<usize> {
-    let mut list = BufReader::new(File::open("input")?)
+#[derive(Debug, Clone, Hash)]
+struct Position {
+    x: i32,
+    y: i32,
+    z: i32,
+}
+impl PartialEq for Position {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y && self.z == other.z
+    }
+}
+impl Eq for Position {}
+
+fn parse_input() -> std::io::Result<HashSet<Position>> {
+    // x will be line width, growing right
+    // y will be number of lines, growing down
+    // z = 0, growing "up"
+    let lines = BufReader::new(File::open("input")?)
         .lines()
-        .map(|line| line.unwrap().parse::<i64>())
-        .map(Result::unwrap)
-        .collect::<Vec<i64>>();
+        .map(|line| line.unwrap())
+        .collect::<Vec<_>>();
+
+    let mut state: HashSet<Position> = HashSet::new();
+
+    for (y, line) in lines.iter().enumerate() {
+        for (x, c) in line.chars().enumerate() {
+            if c == '#' {
+                state.insert(Position {
+                    x: x as i32,
+                    y: y as i32,
+                    z: 0,
+                });
+            }
+        }
+    }
+
+    Ok(state)
+}
+
+fn part_one() -> std::io::Result<usize> {
+    let state = parse_input()?;
+
+    println!("{:?}", state);
 
     Ok(0)
 }
