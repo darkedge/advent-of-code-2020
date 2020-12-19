@@ -355,15 +355,15 @@ fn print_state(state: &State) {
 
 fn part_one() -> std::io::Result<usize> {
     let mut state = parse_input()?;
-    print_state(&state);
+    //print_state(&state);
 
     for i in 1..=6 {
         state = cycle(&state);
-        println!("After {} cycles:\n", i);
-        print_state(&state);
+        //println!("After {} cycles:\n", i);
+        //print_state(&state);
     }
 
-    Ok(0)
+    Ok(state.active.len())
 }
 
 fn main() {
