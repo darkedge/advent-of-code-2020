@@ -168,12 +168,20 @@ Starting with your given initial configuration, simulate six cycles. How many cu
 active state after the sixth cycle?
 */
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Copy, Hash)]
 struct Position {
     x: i32,
     y: i32,
     z: i32,
 }
+
+// We let the inactive state be the 3x3x3 space around active cubes.
+#[derive(Debug, Clone)]
+struct State {
+    active: HashSet<Position>,
+    inactive: HashSet<Position>,
+}
+
 impl PartialEq for Position {
     fn eq(&self, other: &Self) -> bool {
         self.x == other.x && self.y == other.y && self.z == other.z
@@ -181,7 +189,32 @@ impl PartialEq for Position {
 }
 impl Eq for Position {}
 
-fn parse_input() -> std::io::Result<HashSet<Position>> {
+fn match_inactive(active: &HashSet<Position>) -> HashSet<Position> {
+    let mut inactive: HashSet<Position> = HashSet::new();
+    for cube in active {
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    if !((x == 0) && (y == 0) && (z == 0)) {
+                        let neighbor = Position {
+                            x: cube.x + x,
+                            y: cube.y + y,
+                            z: cube.z + z,
+                        };
+
+                        if !active.contains(&neighbor) {
+                            inactive.insert(neighbor);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    inactive
+}
+
+fn parse_input() -> std::io::Result<State> {
     // x will be line width, growing right
     // y will be number of lines, growing down
     // z = 0, growing "up"
@@ -190,12 +223,12 @@ fn parse_input() -> std::io::Result<HashSet<Position>> {
         .map(|line| line.unwrap())
         .collect::<Vec<_>>();
 
-    let mut state: HashSet<Position> = HashSet::new();
+    let mut active: HashSet<Position> = HashSet::new();
 
     for (y, line) in lines.iter().enumerate() {
         for (x, c) in line.chars().enumerate() {
             if c == '#' {
-                state.insert(Position {
+                active.insert(Position {
                     x: x as i32,
                     y: y as i32,
                     z: 0,
@@ -204,13 +237,131 @@ fn parse_input() -> std::io::Result<HashSet<Position>> {
         }
     }
 
-    Ok(state)
+    let inactive = match_inactive(&active);
+    Ok(State { active, inactive })
+}
+
+fn cycle(state: &State) -> State {
+    let mut active: HashSet<Position> = HashSet::new();
+
+    // evaluate active cubes
+    for cube in &state.active {
+        let mut num_neighbors = 0;
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    if !((x == 0) && (y == 0) && (z == 0)) {
+                        let neighbor = Position {
+                            x: cube.x + x,
+                            y: cube.y + y,
+                            z: cube.z + z,
+                        };
+
+                        if state.active.contains(&neighbor) {
+                            //println!("{:?} has neighbor {:?}", cube, neighbor);
+                            num_neighbors += 1;
+                        }
+                    }
+                }
+            }
+        }
+        if (num_neighbors == 2) || (num_neighbors == 3) {
+            //println!("Inserting cube!");
+            active.insert(*cube);
+        //println!("{:?} stays active", cube);
+        } else {
+            //println!("{:?} now inactive", cube);
+        }
+    }
+
+    // evaluate inactive cubes
+    for cube in &state.inactive {
+        let mut num_neighbors = 0;
+        //println!("Checking {:?}", cube);
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    if !((x == 0) && (y == 0) && (z == 0)) {
+                        let neighbor = Position {
+                            x: cube.x + x,
+                            y: cube.y + y,
+                            z: cube.z + z,
+                        };
+
+                        if state.active.contains(&neighbor) {
+                            //println!("Empty {:?} has neighbor {:?}", cube, neighbor);
+                            num_neighbors += 1;
+                        }
+                    }
+                }
+            }
+        }
+        if num_neighbors == 3 {
+            active.insert(*cube);
+            //println!("{:?} now active", cube);
+        }
+    }
+
+    let inactive = match_inactive(&active);
+    State { active, inactive }
+}
+
+fn print_state(state: &State) {
+    // Get extents
+    let mut min_x = i32::MAX;
+    let mut max_x = i32::MIN;
+    let mut min_y = i32::MAX;
+    let mut max_y = i32::MIN;
+    let mut min_z = i32::MAX;
+    let mut max_z = i32::MIN;
+
+    for cube in &state.active {
+        if cube.x < min_x {
+            min_x = cube.x;
+        }
+        if cube.y < min_y {
+            min_y = cube.y;
+        }
+        if cube.z < min_z {
+            min_z = cube.z;
+        }
+        if cube.x > max_x {
+            max_x = cube.x;
+        }
+        if cube.y > max_y {
+            max_y = cube.y;
+        }
+        if cube.z > max_z {
+            max_z = cube.z;
+        }
+    }
+
+    for z in min_z..=max_z {
+        println!("z={}", z);
+        for y in min_y..=max_y {
+            for x in min_x..=max_x {
+                let position = Position { x, y, z };
+                if state.active.contains(&position) {
+                    print!("#");
+                } else {
+                    print!(".");
+                }
+            }
+            println!();
+        }
+        println!();
+    }
 }
 
 fn part_one() -> std::io::Result<usize> {
-    let state = parse_input()?;
+    let mut state = parse_input()?;
+    print_state(&state);
 
-    println!("{:?}", state);
+    for i in 1..=6 {
+        state = cycle(&state);
+        println!("After {} cycles:\n", i);
+        print_state(&state);
+    }
 
     Ok(0)
 }
