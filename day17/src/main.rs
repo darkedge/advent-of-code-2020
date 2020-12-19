@@ -174,6 +174,26 @@ struct Position {
     y: i32,
     z: i32,
 }
+impl PartialEq for Position {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y && self.z == other.z
+    }
+}
+impl Eq for Position {}
+
+#[derive(Debug, Clone, Copy, Hash)]
+struct PositionW {
+    x: i32,
+    y: i32,
+    z: i32,
+    w: i32,
+}
+impl PartialEq for PositionW {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y && self.z == other.z && self.w == other.w
+    }
+}
+impl Eq for PositionW {}
 
 // We let the inactive state be the 3x3x3 space around active cubes.
 #[derive(Debug, Clone)]
@@ -181,13 +201,11 @@ struct State {
     active: HashSet<Position>,
     inactive: HashSet<Position>,
 }
-
-impl PartialEq for Position {
-    fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y == other.y && self.z == other.z
-    }
+#[derive(Debug, Clone)]
+struct StateW {
+    active: HashSet<PositionW>,
+    inactive: HashSet<PositionW>,
 }
-impl Eq for Position {}
 
 fn match_inactive(active: &HashSet<Position>) -> HashSet<Position> {
     let mut inactive: HashSet<Position> = HashSet::new();
@@ -204,6 +222,34 @@ fn match_inactive(active: &HashSet<Position>) -> HashSet<Position> {
 
                         if !active.contains(&neighbor) {
                             inactive.insert(neighbor);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    inactive
+}
+
+fn match_inactive_w(active: &HashSet<PositionW>) -> HashSet<PositionW> {
+    let mut inactive: HashSet<PositionW> = HashSet::new();
+    for cube in active {
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    for w in -1..=1 {
+                        if !((x == 0) && (y == 0) && (z == 0) && (w == 0)) {
+                            let neighbor = PositionW {
+                                x: cube.x + x,
+                                y: cube.y + y,
+                                z: cube.z + z,
+                                w: cube.w + w,
+                            };
+
+                            if !active.contains(&neighbor) {
+                                inactive.insert(neighbor);
+                            }
                         }
                     }
                 }
@@ -239,6 +285,34 @@ fn parse_input() -> std::io::Result<State> {
 
     let inactive = match_inactive(&active);
     Ok(State { active, inactive })
+}
+
+fn parse_input_w() -> std::io::Result<StateW> {
+    // x will be line width, growing right
+    // y will be number of lines, growing down
+    // z = 0, growing "up"
+    let lines = BufReader::new(File::open("input")?)
+        .lines()
+        .map(|line| line.unwrap())
+        .collect::<Vec<_>>();
+
+    let mut active: HashSet<PositionW> = HashSet::new();
+
+    for (y, line) in lines.iter().enumerate() {
+        for (x, c) in line.chars().enumerate() {
+            if c == '#' {
+                active.insert(PositionW {
+                    x: x as i32,
+                    y: y as i32,
+                    z: 0,
+                    w: 0,
+                });
+            }
+        }
+    }
+
+    let inactive = match_inactive_w(&active);
+    Ok(StateW { active, inactive })
 }
 
 fn cycle(state: &State) -> State {
@@ -306,6 +380,69 @@ fn cycle(state: &State) -> State {
     State { active, inactive }
 }
 
+fn cycle_w(state: &StateW) -> StateW {
+    let mut active: HashSet<PositionW> = HashSet::new();
+
+    // evaluate active cubes
+    for cube in &state.active {
+        let mut num_neighbors = 0;
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    for w in -1..=1 {
+                        if !((x == 0) && (y == 0) && (z == 0) && (w == 0)) {
+                            let neighbor = PositionW {
+                                x: cube.x + x,
+                                y: cube.y + y,
+                                z: cube.z + z,
+                                w: cube.w + w,
+                            };
+
+                            if state.active.contains(&neighbor) {
+                                num_neighbors += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (num_neighbors == 2) || (num_neighbors == 3) {
+            active.insert(*cube);
+        }
+    }
+
+    // evaluate inactive cubes
+    for cube in &state.inactive {
+        let mut num_neighbors = 0;
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    for w in -1..=1 {
+                        if !((x == 0) && (y == 0) && (z == 0) && (w == 0)) {
+                            let neighbor = PositionW {
+                                x: cube.x + x,
+                                y: cube.y + y,
+                                z: cube.z + z,
+                                w: cube.w + w,
+                            };
+
+                            if state.active.contains(&neighbor) {
+                                num_neighbors += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if num_neighbors == 3 {
+            active.insert(*cube);
+        }
+    }
+
+    let inactive = match_inactive_w(&active);
+    StateW { active, inactive }
+}
+
 fn print_state(state: &State) {
     // Get extents
     let mut min_x = i32::MAX;
@@ -366,8 +503,282 @@ fn part_one() -> std::io::Result<usize> {
     Ok(state.active.len())
 }
 
+/*
+--- Part Two ---
+
+For some reason, your simulated results don't match what the experimental energy source engineers
+expected. Apparently, the pocket dimension actually has four spatial dimensions, not three.
+
+The pocket dimension contains an infinite 4-dimensional grid. At every integer 4-dimensional
+coordinate (x,y,z,w), there exists a single cube (really, a hypercube) which is still either active
+or inactive.
+
+Each cube only ever considers its neighbors: any of the 80 other cubes where any of their
+coordinates differ by at most 1. For example, given the cube at x=1,y=2,z=3,w=4, its neighbors
+include the cube at x=2,y=2,z=3,w=3, the cube at x=0,y=2,z=3,w=4, and so on.
+
+The initial state of the pocket dimension still consists of a small flat region of cubes.
+Furthermore, the same rules for cycle updating still apply: during each cycle, consider the number
+of active neighbors of each cube.
+
+For example, consider the same initial state as in the example above. Even though the pocket
+dimension is 4-dimensional, this initial state represents a small 2-dimensional slice of it.
+(In particular, this initial state defines a 3x3x1x1 region of the 4-dimensional space.)
+
+Simulating a few cycles from this initial state produces the following configurations, where the
+result of each cycle is shown layer-by-layer at each given z and w coordinate:
+
+Before any cycles:
+
+z=0, w=0
+.#.
+..#
+###
+
+
+After 1 cycle:
+
+z=-1, w=-1
+#..
+..#
+.#.
+
+z=0, w=-1
+#..
+..#
+.#.
+
+z=1, w=-1
+#..
+..#
+.#.
+
+z=-1, w=0
+#..
+..#
+.#.
+
+z=0, w=0
+#.#
+.##
+.#.
+
+z=1, w=0
+#..
+..#
+.#.
+
+z=-1, w=1
+#..
+..#
+.#.
+
+z=0, w=1
+#..
+..#
+.#.
+
+z=1, w=1
+#..
+..#
+.#.
+
+
+After 2 cycles:
+
+z=-2, w=-2
+.....
+.....
+..#..
+.....
+.....
+
+z=-1, w=-2
+.....
+.....
+.....
+.....
+.....
+
+z=0, w=-2
+###..
+##.##
+#...#
+.#..#
+.###.
+
+z=1, w=-2
+.....
+.....
+.....
+.....
+.....
+
+z=2, w=-2
+.....
+.....
+..#..
+.....
+.....
+
+z=-2, w=-1
+.....
+.....
+.....
+.....
+.....
+
+z=-1, w=-1
+.....
+.....
+.....
+.....
+.....
+
+z=0, w=-1
+.....
+.....
+.....
+.....
+.....
+
+z=1, w=-1
+.....
+.....
+.....
+.....
+.....
+
+z=2, w=-1
+.....
+.....
+.....
+.....
+.....
+
+z=-2, w=0
+###..
+##.##
+#...#
+.#..#
+.###.
+
+z=-1, w=0
+.....
+.....
+.....
+.....
+.....
+
+z=0, w=0
+.....
+.....
+.....
+.....
+.....
+
+z=1, w=0
+.....
+.....
+.....
+.....
+.....
+
+z=2, w=0
+###..
+##.##
+#...#
+.#..#
+.###.
+
+z=-2, w=1
+.....
+.....
+.....
+.....
+.....
+
+z=-1, w=1
+.....
+.....
+.....
+.....
+.....
+
+z=0, w=1
+.....
+.....
+.....
+.....
+.....
+
+z=1, w=1
+.....
+.....
+.....
+.....
+.....
+
+z=2, w=1
+.....
+.....
+.....
+.....
+.....
+
+z=-2, w=2
+.....
+.....
+..#..
+.....
+.....
+
+z=-1, w=2
+.....
+.....
+.....
+.....
+.....
+
+z=0, w=2
+###..
+##.##
+#...#
+.#..#
+.###.
+
+z=1, w=2
+.....
+.....
+.....
+.....
+.....
+
+z=2, w=2
+.....
+.....
+..#..
+.....
+.....
+
+After the full six-cycle boot process completes, 848 cubes are left in the active state.
+
+Starting with your given initial configuration, simulate six cycles in a 4-dimensional space. How
+many cubes are left in the active state after the sixth cycle?
+*/
+
+fn part_two() -> std::io::Result<usize> {
+    let mut state = parse_input_w()?;
+
+    for _ in 1..=6 {
+        state = cycle_w(&state);
+    }
+
+    Ok(state.active.len())
+}
+
 fn main() {
     println!("=== Advent of Code Day 10 ===");
     println!("Part One: {}", part_one().unwrap_or(0));
-    //println!("Part Two: {}", part_two().unwrap_or(0));
+    println!("Part Two: {}", part_two().unwrap_or(0));
 }
